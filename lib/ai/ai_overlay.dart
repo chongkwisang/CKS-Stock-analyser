@@ -1025,6 +1025,8 @@ class _SettingsPageState extends State<_SettingsPage> {
               ],
             ),
           ),
+          section('Chat diagnostics'),
+          _Diagnostics(),
           Padding(
             padding: const EdgeInsets.fromLTRB(4, 10, 4, 0),
             child: Text(
@@ -1216,4 +1218,49 @@ class _Badge extends StatelessWidget {
       style: TextStyle(fontSize: 10, color: color, fontWeight: FontWeight.w700),
     ),
   );
+}
+
+class _Diagnostics extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return ListenableBuilder(
+      listenable: AiController.instance,
+      builder: (context, _) {
+        final w = AiController.instance.webChat;
+        final lines = <String>[
+          'Page: ${w?.url ?? '(not loaded)'}',
+          'Title: ${w?.title ?? '-'}',
+          'App bridge: ${w?.bridgeSeen == true ? 'connected' : 'not connected'}',
+          '',
+          ...?w?.console.reversed.take(25),
+        ];
+        return Card(
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SelectableText(
+                  lines.join('\n'),
+                  style: theme.textTheme.bodySmall?.copyWith(fontFamily: 'monospace', fontSize: 11),
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  children: [
+                    OutlinedButton.icon(
+                      icon: const Icon(Icons.open_in_new, size: 16),
+                      label: const Text('Open chat in browser'),
+                      onPressed: () => launchUrl(Uri.parse(claudeChatUrl), mode: LaunchMode.externalApplication),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
 }

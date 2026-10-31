@@ -378,6 +378,8 @@ Only change the watchlist when asked. This is information, not financial advice:
   });
 
   // ── Start ────────────────────────────────────────────────────────────────
+  // Tell the app this page reached it (shows as "App bridge: connected" in AI settings).
+  try { if (hasBridge()) window.CksBridge.postMessage(JSON.stringify({ id: "hello", tool: "hello", input: {} })); } catch {}
   updateStatus("Connecting…");
   if (window.claude && typeof window.claude.use === "function") {
     window.claude.use("sample").then(async (s) => {

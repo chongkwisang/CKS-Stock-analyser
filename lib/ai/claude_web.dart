@@ -39,6 +39,21 @@ class ClaudeWebChatState extends State<ClaudeWebChat> {
   int _progress = 0;
   String? _error;
 
+  // Diagnostics, shown in AI settings.
+  String? url;
+  String? title;
+  bool bridgeSeen = false;
+  final List<String> console = [];
+
+  void _log(String line) {
+    final t = DateTime.now();
+    console.add(
+      '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}:${t.second.toString().padLeft(2, '0')} $line',
+    );
+    if (console.length > 40) console.removeAt(0);
+    AiController.instance.notifyDiagnostics();
+  }
+
   @override
   void initState() {
     super.initState();
@@ -54,11 +69,20 @@ class ClaudeWebChatState extends State<ClaudeWebChat> {
           onPageStarted: (_) {
             if (mounted) setState(() => _error = null);
           },
-          onPageFinished: _returnToChat,
+          onPageFinished: (u) async {
+            url = u;
+            title = await _web.getTitle();
+            _log('loaded $u');
+            _returnToChat(u);
+          },
           onUrlChange: (c) {
-            if (c.url != null) _returnToChat(c.url!);
+            if (c.url == null) return;
+            url = c.url;
+            _log('url ${c.url}');
+            _returnToChat(c.url!);
           },
           onWebResourceError: (e) {
+            _log('error ${e.errorCode} ${e.description} ${e.url ?? ''}');
             if (e.isForMainFrame == true && mounted) {
               setState(() => _error = 'Could not load Claude (${e.description}). Check your connection.');
             }
@@ -75,6 +99,7 @@ class ClaudeWebChatState extends State<ClaudeWebChat> {
           },
         ),
       );
+    _web.setOnConsoleMessage((m) => _log('console.${m.level.name}: ${m.message}'));
     final platform = _web.platform;
     if (platform is AndroidWebViewController) {
       // The chat page is served from a claude.ai sub-frame; it needs its cookies.
@@ -99,6 +124,7 @@ class ClaudeWebChatState extends State<ClaudeWebChat> {
     final path = uri.path;
     const stay = ['/artifact', '/login', '/logout', '/magic-link', '/oauth', '/verify', '/sso', '/onboarding', '/api'];
     if (stay.any(path.startsWith)) return;
+    _log('back to chat from $path');
     _web.loadRequest(Uri.parse(claudeChatUrl));
   }
 
@@ -124,7 +150,11 @@ class ClaudeWebChatState extends State<ClaudeWebChat> {
       id = req['id']?.toString();
       final tool = req['tool']?.toString() ?? '';
       final input = (req['input'] is Map) ? (req['input'] as Map).cast<String, dynamic>() : <String, dynamic>{};
-      if (tool == 'get_app_context') {
+      if (tool == 'hello') {
+        bridgeSeen = true;
+        _log('bridge connected');
+        return;
+      } else if (tool == 'get_app_context') {
         output = AiController.instance.appContext();
       } else if (AppTools.isAppTool(tool)) {
         output = await AppTools.run(tool, input);

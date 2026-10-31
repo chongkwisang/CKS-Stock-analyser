@@ -74,6 +74,8 @@ class AiController extends ChangeNotifier {
   /// The claude.ai chat view, while it is mounted.
   ClaudeWebChatState? webChat;
 
+  void notifyDiagnostics() => notifyListeners();
+
   AiPage get page {
     final cfg = AiConfig.instance;
     if (!cfg.useClaudeAccount && !cfg.signedIn && _page != AiPage.settings) return AiPage.login;
