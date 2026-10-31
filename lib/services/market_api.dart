@@ -124,7 +124,7 @@ class MarketApi {
     if (!force && cached != null && DateTime.now().difference(cached.$1) < const Duration(seconds: 60)) {
       return cached.$2;
     }
-    final json = await _getJson('/v8/finance/chart/${Uri.encodeComponent(symbol)}', {
+    final json = await _getJson('/v8/finance/chart/$symbol', {
       'range': range.range,
       'interval': range.interval,
       'includePrePost': 'false',

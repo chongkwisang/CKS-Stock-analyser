@@ -33,21 +33,23 @@ class _MarketScreenState extends State<MarketScreen> {
       _loading = true;
       _error = null;
     });
-    try {
-      final results = await Future.wait([
-        MarketApi.instance.chart(klciSymbol, _range, force: force),
-        MarketApi.instance.quotes(klciStocks.map((e) => e.symbol).toList(), force: force),
-      ]);
-      if (!mounted) return;
-      setState(() {
-        _index = results[0] as ChartData;
-        _quotes = results[1] as Map<String, StockQuote>;
-      });
-    } catch (e) {
-      if (mounted) setState(() => _error = '$e');
-    } finally {
-      if (mounted) setState(() => _loading = false);
-    }
+    // Index and movers load independently so one failing doesn't blank the page.
+    final indexFuture = MarketApi.instance
+        .chart(klciSymbol, _range, force: force)
+        .then<ChartData?>((d) => d)
+        .catchError((Object e) {
+          if (mounted) setState(() => _error = 'FBM KLCI: $e');
+          return null;
+        });
+    final quotes = await MarketApi.instance.quotes(klciStocks.map((e) => e.symbol).toList(), force: force);
+    final index = await indexFuture;
+    if (!mounted) return;
+    setState(() {
+      if (index != null) _index = index;
+      _quotes = quotes;
+      _loading = false;
+      if (index == null && quotes.isEmpty) _error ??= 'Network error. Check your connection.';
+    });
   }
 
   Future<void> _setRange(ChartRange r) async {
@@ -79,7 +81,7 @@ class _MarketScreenState extends State<MarketScreen> {
           final indexCard = _indexCard(context, wide ? 360 : 240);
           final breadth = _breadthCard(context);
           final movers = _moversCard(context);
-          if (_error != null && _index == null) {
+          if (_error != null && _index == null && _quotes.isEmpty) {
             return Center(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -139,7 +141,9 @@ class _MarketScreenState extends State<MarketScreen> {
             children: [
               Text('FBM KLCI', style: theme.textTheme.labelLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
               const SizedBox(height: 4),
-              if (d == null)
+              if (d == null && !_loading && _error != null)
+                Text(_error!, style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.error))
+              else if (d == null)
                 const SizedBox(height: 40, child: Center(child: LinearProgressIndicator()))
               else
                 Row(
