@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
+import '../ai/ai_config.dart';
+import '../ai/ai_controller.dart';
 import '../services/app_state.dart';
 import '../services/updater.dart';
 
@@ -72,6 +74,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           ),
                         ),
                       ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                _section(context, 'AI assistant'),
+                Card(
+                  child: ListenableBuilder(
+                    listenable: AiConfig.instance,
+                    builder: (context, _) => ListTile(
+                      leading: const Icon(Icons.auto_awesome),
+                      title: const Text('Claude AI'),
+                      subtitle: Text(
+                        AiConfig.instance.signedIn
+                            ? 'Connected · ${AiConfig.instance.modelLabel}'
+                            : 'Not connected. Tap to sign in',
+                      ),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () => AiController.instance.show(page: AiPage.settings),
                     ),
                   ),
                 ),

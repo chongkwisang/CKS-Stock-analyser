@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import 'ai/ai_config.dart';
+import 'ai/ai_overlay.dart';
+import 'app_nav.dart';
 import 'screens/home_shell.dart';
 import 'services/app_state.dart';
 import 'theme.dart';
@@ -7,6 +10,7 @@ import 'theme.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await AppState.instance.load();
+  await AiConfig.instance.load();
   runApp(const CksApp());
 }
 
@@ -23,6 +27,8 @@ class CksApp extends StatelessWidget {
         theme: buildTheme(Brightness.light),
         darkTheme: buildTheme(Brightness.dark),
         themeMode: AppState.instance.themeMode,
+        navigatorKey: appNavigatorKey,
+        builder: (context, child) => AiOverlay(child: child ?? const SizedBox()),
         home: const HomeShell(),
       ),
     );

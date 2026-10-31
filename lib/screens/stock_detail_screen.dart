@@ -36,13 +36,21 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
   @override
   void initState() {
     super.initState();
+    AppState.instance.viewingSymbol = widget.symbol;
     _load();
+  }
+
+  @override
+  void dispose() {
+    if (AppState.instance.viewingSymbol == widget.symbol) AppState.instance.viewingSymbol = null;
+    super.dispose();
   }
 
   @override
   void didUpdateWidget(StockDetailScreen old) {
     super.didUpdateWidget(old);
     if (old.symbol != widget.symbol) {
+      AppState.instance.viewingSymbol = widget.symbol;
       _data = null;
       _load();
     }

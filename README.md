@@ -12,6 +12,10 @@ https://github.com/chongkwisang/CKS-Stock-analyser/releases/latest/download/CKS-
 - **Stock detail**: candlestick or line chart (1D to MAX), MA20/50/200, Bollinger Bands, volume, RSI(14), MACD and a touch crosshair
 - **Analyzer**: a technical score and signal breakdown. The rules live in `lib/services/analyzer.dart`, the place to change them
 - **Adaptive layout**: bottom navigation on phones; a navigation rail and split panes on tablets. Light and dark themes
+- **Claude AI assistant**: a floating button at the bottom-right opens an animated chat panel over any screen (tap again to minimise). Sign in with your own Anthropic API key and choose any model on your account (Claude Opus 5.5 is the default). Claude can use:
+  - 9 built-in Bursa tools (`lib/ai/app_tools.dart`): search, quotes, price history, technical analysis, compare, market overview, read/update watchlist, open charts
+  - Web search and web fetch for news and fundamentals
+  - Any remote MCP servers you add in AI settings, via the MCP connector
 - **In-app updates**: Settings → *Check for update* (and an automatic check on launch) downloads the newest release APK and installs it
 
 Market data comes from Yahoo Finance's public endpoints (`XXXX.KL` symbols, `^KLSE` index) and may be delayed.

@@ -12,6 +12,9 @@ class AppState extends ChangeNotifier {
   bool _autoCheckUpdates = true;
   bool _candles = true;
 
+  /// Symbol on the stock screen currently open (context for the AI).
+  String? viewingSymbol;
+
   List<String> get watchlist => List.unmodifiable(_watchlist);
   ThemeMode get themeMode => _themeMode;
   bool get autoCheckUpdates => _autoCheckUpdates;
