@@ -14,6 +14,8 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+        // Required by the ota_update plugin (in-app updater).
+        isCoreLibraryDesugaringEnabled = true
     }
 
     // Release signing. A stable key is REQUIRED so in-app updates install over
@@ -68,4 +70,8 @@ kotlin {
 
 flutter {
     source = "../.."
+}
+
+dependencies {
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
 }
