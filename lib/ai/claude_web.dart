@@ -54,6 +54,10 @@ class ClaudeWebChatState extends State<ClaudeWebChat> {
           onPageStarted: (_) {
             if (mounted) setState(() => _error = null);
           },
+          onPageFinished: _returnToChat,
+          onUrlChange: (c) {
+            if (c.url != null) _returnToChat(c.url!);
+          },
           onWebResourceError: (e) {
             if (e.isForMainFrame == true && mounted) {
               setState(() => _error = 'Could not load Claude (${e.description}). Check your connection.');
@@ -85,6 +89,17 @@ class ClaudeWebChatState extends State<ClaudeWebChat> {
   void dispose() {
     if (AiController.instance.webChat == this) AiController.instance.webChat = null;
     super.dispose();
+  }
+
+  /// After signing in, claude.ai lands on its own home page; bring the
+  /// user back to the CKS chat page.
+  void _returnToChat(String url) {
+    final uri = Uri.tryParse(url);
+    if (uri == null || (uri.host != 'claude.ai' && uri.host != 'www.claude.ai')) return;
+    final path = uri.path;
+    const stay = ['/artifact', '/login', '/logout', '/magic-link', '/oauth', '/verify', '/sso', '/onboarding', '/api'];
+    if (stay.any(path.startsWith)) return;
+    _web.loadRequest(Uri.parse(claudeChatUrl));
   }
 
   void reload() {

@@ -237,9 +237,12 @@ class _Panel extends StatelessWidget {
             const Divider(height: 1),
             Expanded(
               child: Stack(
+                fit: StackFit.expand,
                 children: [
                   if (AiConfig.instance.useClaudeAccount)
-                    Offstage(offstage: ai.page != AiPage.chat, child: const ClaudeWebChat()),
+                    Positioned.fill(
+                      child: Offstage(offstage: ai.page != AiPage.chat, child: const ClaudeWebChat()),
+                    ),
                   if (!(AiConfig.instance.useClaudeAccount && ai.page == AiPage.chat))
                     Positioned.fill(
                       child: ColoredBox(
