@@ -117,14 +117,19 @@ class ClaudeWebChatState extends State<ClaudeWebChat> {
   }
 
   /// After signing in, claude.ai lands on its own home page; bring the
-  /// user back to the CKS chat page.
+  /// user back to the CKS chat page. Only from claude.ai's home/chat-list
+  /// pages, and at most once a minute, so it can never loop.
+  DateTime? _lastReturn;
   void _returnToChat(String url) {
     final uri = Uri.tryParse(url);
     if (uri == null || (uri.host != 'claude.ai' && uri.host != 'www.claude.ai')) return;
-    final path = uri.path;
-    const stay = ['/artifact', '/login', '/logout', '/magic-link', '/oauth', '/verify', '/sso', '/onboarding', '/api'];
-    if (stay.any(path.startsWith)) return;
-    _log('back to chat from $path');
+    final path = uri.path.replaceAll(RegExp(r'/+$'), '');
+    final home = path.isEmpty || path == '/new' || path == '/recents' || path == '/chats' || path == '/projects';
+    if (!home) return;
+    final now = DateTime.now();
+    if (_lastReturn != null && now.difference(_lastReturn!) < const Duration(minutes: 1)) return;
+    _lastReturn = now;
+    _log('back to chat from ${path.isEmpty ? '/' : path}');
     _web.loadRequest(Uri.parse(claudeChatUrl));
   }
 
