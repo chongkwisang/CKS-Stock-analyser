@@ -8,6 +8,7 @@ import '../services/app_state.dart';
 import 'ai_config.dart';
 import 'ai_controller.dart';
 import 'app_tools.dart';
+import 'claude_web.dart';
 
 /// Wraps the whole app (above the Navigator) with the floating Claude
 /// button and the chat panel that expands from it.
@@ -41,6 +42,9 @@ class _AiStack extends StatefulWidget {
 }
 
 class _AiStackState extends State<_AiStack> with SingleTickerProviderStateMixin {
+  /// The panel is built on first open and then kept (minimised = offstage),
+  /// so the claude.ai chat is not reloaded every time.
+  bool _mounted = false;
   final ai = AiController.instance;
   late final AnimationController _anim = AnimationController(
     vsync: this,
@@ -91,7 +95,8 @@ class _AiStackState extends State<_AiStack> with SingleTickerProviderStateMixin 
           animation: _anim,
           builder: (context, child) {
             final t = _anim.value;
-            if (t == 0) return const SizedBox.shrink();
+            if (t > 0) _mounted = true;
+            if (!_mounted) return const SizedBox.shrink();
             final curved = Curves.easeOutCubic.transform(t);
             final fade = Curves.easeOut.transform(math.min(1, t * 1.6));
             return Positioned(
@@ -99,13 +104,20 @@ class _AiStackState extends State<_AiStack> with SingleTickerProviderStateMixin 
               bottom: panelBottom,
               width: panelW,
               height: panelH,
-              child: IgnorePointer(
-                ignoring: !ai.open,
-                child: Opacity(
-                  opacity: fade,
-                  child: Transform.translate(
-                    offset: Offset(0, (1 - curved) * 40),
-                    child: Transform.scale(scale: 0.55 + 0.45 * curved, alignment: Alignment.bottomRight, child: child),
+              child: Offstage(
+                offstage: t == 0,
+                child: IgnorePointer(
+                  ignoring: !ai.open,
+                  child: Opacity(
+                    opacity: fade,
+                    child: Transform.translate(
+                      offset: Offset(0, (1 - curved) * 40),
+                      child: Transform.scale(
+                        scale: 0.55 + 0.45 * curved,
+                        alignment: Alignment.bottomRight,
+                        child: child,
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -224,20 +236,32 @@ class _Panel extends StatelessWidget {
             _Header(page: ai.page),
             const Divider(height: 1),
             Expanded(
-              child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 250),
-                transitionBuilder: (child, a) => FadeTransition(
-                  opacity: a,
-                  child: SlideTransition(
-                    position: Tween(begin: const Offset(0.04, 0), end: Offset.zero).animate(a),
-                    child: child,
-                  ),
-                ),
-                child: switch (ai.page) {
-                  AiPage.login => const _LoginPage(key: ValueKey('login')),
-                  AiPage.settings => const _SettingsPage(key: ValueKey('settings')),
-                  AiPage.chat => const _ChatPage(key: ValueKey('chat')),
-                },
+              child: Stack(
+                children: [
+                  if (AiConfig.instance.useClaudeAccount)
+                    Offstage(offstage: ai.page != AiPage.chat, child: const ClaudeWebChat()),
+                  if (!(AiConfig.instance.useClaudeAccount && ai.page == AiPage.chat))
+                    Positioned.fill(
+                      child: ColoredBox(
+                        color: Theme.of(context).colorScheme.surfaceContainerLow,
+                        child: AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 250),
+                          transitionBuilder: (child, a) => FadeTransition(
+                            opacity: a,
+                            child: SlideTransition(
+                              position: Tween(begin: const Offset(0.04, 0), end: Offset.zero).animate(a),
+                              child: child,
+                            ),
+                          ),
+                          child: switch (ai.page) {
+                            AiPage.login => const _LoginPage(key: ValueKey('login')),
+                            AiPage.settings => const _SettingsPage(key: ValueKey('settings')),
+                            AiPage.chat => const _ChatPage(key: ValueKey('chat')),
+                          },
+                        ),
+                      ),
+                    ),
+                ],
               ),
             ),
           ],
@@ -285,7 +309,9 @@ class _Header extends StatelessWidget {
                   page == AiPage.settings ? 'AI settings' : 'CKS AI',
                   style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
                 ),
-                if (cfg.signedIn)
+                if (cfg.useClaudeAccount)
+                  Text('Your Claude account', style: theme.textTheme.bodySmall)
+                else if (cfg.signedIn)
                   GestureDetector(
                     onTap: () => ai.page = AiPage.settings,
                     child: Row(
@@ -308,7 +334,10 @@ class _Header extends StatelessWidget {
             ),
           ),
           if (page == AiPage.chat) ...[
-            IconButton(tooltip: 'New chat', icon: const Icon(Icons.add_comment_outlined), onPressed: ai.newChat),
+            if (cfg.useClaudeAccount)
+              IconButton(tooltip: 'Reload chat', icon: const Icon(Icons.refresh), onPressed: () => ai.webChat?.reload())
+            else
+              IconButton(tooltip: 'New chat', icon: const Icon(Icons.add_comment_outlined), onPressed: ai.newChat),
             IconButton(
               tooltip: 'AI settings',
               icon: const Icon(Icons.tune),
@@ -861,7 +890,9 @@ class _SettingsPageState extends State<_SettingsPage> {
   @override
   void initState() {
     super.initState();
-    if (AiConfig.instance.models.isEmpty) _refresh();
+    if (!AiConfig.instance.useClaudeAccount && AiConfig.instance.signedIn && AiConfig.instance.models.isEmpty) {
+      _refresh();
+    }
   }
 
   @override
@@ -932,160 +963,237 @@ class _SettingsPageState extends State<_SettingsPage> {
     return ListView(
       padding: const EdgeInsets.fromLTRB(14, 0, 14, 20),
       children: [
-        section('Account'),
-        Card(
-          child: ListTile(
-            leading: const Icon(Icons.verified_user_outlined),
-            title: const Text('Connected with API key'),
-            subtitle: Text(key.length > 8 ? '••••${key.substring(key.length - 4)}' : '••••'),
-            trailing: TextButton(onPressed: AiController.instance.signOut, child: const Text('Sign out')),
-          ),
-        ),
-        section(
-          'AI model',
-          trailing: _refreshing
-              ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-              : IconButton(
-                  visualDensity: VisualDensity.compact,
-                  tooltip: 'Refresh models',
-                  icon: const Icon(Icons.refresh, size: 20),
-                  onPressed: _refresh,
-                ),
-        ),
-        if (_error != null)
-          Padding(
-            padding: const EdgeInsets.all(4),
-            child: Text(_error!, style: TextStyle(color: cs.error)),
-          ),
+        section('Connection'),
         Card(
           child: RadioGroup<String>(
-            groupValue: cfg.model,
+            groupValue: cfg.mode,
             onChanged: (v) {
-              if (v != null) cfg.model = v;
+              if (v != null) cfg.mode = v;
             },
-            child: Column(
+            child: const Column(
               children: [
-                if (cfg.models.isEmpty && !_refreshing) const ListTile(title: Text('No models loaded. Tap refresh.')),
-                for (final m in cfg.models)
-                  RadioListTile<String>(
-                    value: m.id,
-                    dense: true,
-                    title: Row(
-                      children: [
-                        Flexible(
-                          child: Text(m.displayName, style: const TextStyle(fontWeight: FontWeight.w600)),
-                        ),
-                        if (m.id == defaultModelId) _Badge('Recommended', cs.primary),
-                        if (m.id == newest && m.id != defaultModelId) _Badge('Newest', cs.tertiary),
-                      ],
-                    ),
-                    subtitle: Text(m.id),
-                  ),
+                RadioListTile<String>(
+                  value: 'claude',
+                  title: Text('Claude account', style: TextStyle(fontWeight: FontWeight.w600)),
+                  subtitle: Text('Sign in on claude.ai. Uses your Claude plan, no API key needed.'),
+                ),
+                RadioListTile<String>(
+                  value: 'api',
+                  title: Text('API key (advanced)', style: TextStyle(fontWeight: FontWeight.w600)),
+                  subtitle: Text('Pay-as-you-go Claude Console key. Adds web search and MCP servers.'),
+                ),
               ],
             ),
           ),
         ),
-        if ((cfg.modelInfo?.effortLevels ?? const []).isNotEmpty) ...[
-          section('Reasoning effort'),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: SegmentedButton<String>(
-              showSelectedIcon: false,
-              segments: [for (final l in cfg.modelInfo!.effortLevels) ButtonSegment(value: l, label: Text(l))],
-              selected: {cfg.effort},
-              onSelectionChanged: (v) => cfg.effort = v.first,
+        if (cfg.useClaudeAccount) ...[
+          section('Claude account'),
+          Card(
+            child: Column(
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.chat_outlined),
+                  title: const Text('Back to chat'),
+                  subtitle: const Text(
+                    'Choose the engine (Fast, Balanced, Most capable or a named model) '
+                    'from the sliders icon inside the chat.',
+                  ),
+                  onTap: () => AiController.instance.page = AiPage.chat,
+                ),
+                const Divider(height: 1),
+                ListTile(
+                  leading: const Icon(Icons.refresh),
+                  title: const Text('Reload chat'),
+                  onTap: () {
+                    AiController.instance.webChat?.reload();
+                    AiController.instance.page = AiPage.chat;
+                  },
+                ),
+                const Divider(height: 1),
+                ListTile(
+                  leading: const Icon(Icons.logout),
+                  title: const Text('Sign out of claude.ai'),
+                  subtitle: const Text('Clears the Claude sign-in stored in this app'),
+                  onTap: () async {
+                    await AiController.instance.webChat?.signOut();
+                    AiController.instance.page = AiPage.chat;
+                  },
+                ),
+              ],
             ),
           ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(4, 6, 4, 0),
-            child: Text('Higher effort = deeper analysis, slower and more tokens.', style: theme.textTheme.bodySmall),
-          ),
-        ],
-        section('Tools'),
-        Card(
-          child: Column(
-            children: [
-              ListTile(
-                leading: const Icon(Icons.query_stats),
-                title: const Text('Bursa market tools'),
-                subtitle: Text(
-                  '${AppTools.definitions.length} built-in tools: quotes, history, technicals, compare, '
-                  'market overview, watchlist, open charts',
-                ),
-                trailing: const Icon(Icons.check_circle, color: Colors.green),
-              ),
-              const Divider(height: 1),
-              SwitchListTile(
-                secondary: const Icon(Icons.public),
-                title: const Text('Web search & fetch'),
-                subtitle: const Text('News, announcements and fundamentals'),
-                value: cfg.webTools,
-                onChanged: (v) => cfg.webTools = v,
-              ),
-            ],
-          ),
-        ),
-        section(
-          'MCP servers',
-          trailing: IconButton(
-            visualDensity: VisualDensity.compact,
-            tooltip: 'Add MCP server',
-            icon: Icon(_adding ? Icons.close : Icons.add, size: 20),
-            onPressed: () => setState(() => _adding = !_adding),
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(4, 0, 4, 8),
-          child: Text(
-            'Connect remote MCP servers (https) to give Claude more tools. Claude connects to them directly.',
-            style: theme.textTheme.bodySmall,
-          ),
-        ),
-        AnimatedSize(
-          duration: const Duration(milliseconds: 220),
-          child: !_adding
-              ? const SizedBox(width: double.infinity)
-              : Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Column(
-                      children: [
-                        TextField(
-                          controller: _name,
-                          decoration: const InputDecoration(labelText: 'Name', isDense: true),
-                        ),
-                        const SizedBox(height: 8),
-                        TextField(
-                          controller: _url,
-                          keyboardType: TextInputType.url,
-                          decoration: const InputDecoration(labelText: 'Server URL (https://…)', isDense: true),
-                        ),
-                        const SizedBox(height: 8),
-                        TextField(
-                          controller: _token,
-                          obscureText: true,
-                          decoration: const InputDecoration(labelText: 'Auth token (optional)', isDense: true),
-                        ),
-                        const SizedBox(height: 10),
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: FilledButton.tonal(onPressed: _addServer, child: const Text('Add server')),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-        ),
-        for (final s in cfg.mcpServers)
-          Card(
-            child: SwitchListTile(
-              title: Text(s.name),
-              subtitle: Text(s.url, maxLines: 1, overflow: TextOverflow.ellipsis),
-              value: s.enabled,
-              onChanged: (v) => cfg.toggleMcp(s.name, v),
-              secondary: IconButton(icon: const Icon(Icons.delete_outline), onPressed: () => cfg.removeMcp(s.name)),
+            padding: const EdgeInsets.fromLTRB(4, 10, 4, 0),
+            child: Text(
+              'Sign in with the Claude account that owns the CKS AI chat page, or one it is shared with. '
+              'Inside apps, Google sign-in may be blocked: use "Continue with email" instead.',
+              style: theme.textTheme.bodySmall,
             ),
           ),
+        ],
+        if (!cfg.useClaudeAccount) ...[
+          section('Account'),
+          Card(
+            child: cfg.signedIn
+                ? ListTile(
+                    leading: const Icon(Icons.verified_user_outlined),
+                    title: const Text('Connected with API key'),
+                    subtitle: Text(key.length > 8 ? '••••${key.substring(key.length - 4)}' : '••••'),
+                    trailing: TextButton(onPressed: AiController.instance.signOut, child: const Text('Sign out')),
+                  )
+                : ListTile(
+                    leading: const Icon(Icons.key),
+                    title: const Text('Enter your API key'),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () => AiController.instance.page = AiPage.login,
+                  ),
+          ),
+          section(
+            'AI model',
+            trailing: _refreshing
+                ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                : IconButton(
+                    visualDensity: VisualDensity.compact,
+                    tooltip: 'Refresh models',
+                    icon: const Icon(Icons.refresh, size: 20),
+                    onPressed: _refresh,
+                  ),
+          ),
+          if (_error != null)
+            Padding(
+              padding: const EdgeInsets.all(4),
+              child: Text(_error!, style: TextStyle(color: cs.error)),
+            ),
+          Card(
+            child: RadioGroup<String>(
+              groupValue: cfg.model,
+              onChanged: (v) {
+                if (v != null) cfg.model = v;
+              },
+              child: Column(
+                children: [
+                  if (cfg.models.isEmpty && !_refreshing) const ListTile(title: Text('No models loaded. Tap refresh.')),
+                  for (final m in cfg.models)
+                    RadioListTile<String>(
+                      value: m.id,
+                      dense: true,
+                      title: Row(
+                        children: [
+                          Flexible(
+                            child: Text(m.displayName, style: const TextStyle(fontWeight: FontWeight.w600)),
+                          ),
+                          if (m.id == defaultModelId) _Badge('Recommended', cs.primary),
+                          if (m.id == newest && m.id != defaultModelId) _Badge('Newest', cs.tertiary),
+                        ],
+                      ),
+                      subtitle: Text(m.id),
+                    ),
+                ],
+              ),
+            ),
+          ),
+          if ((cfg.modelInfo?.effortLevels ?? const []).isNotEmpty) ...[
+            section('Reasoning effort'),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: SegmentedButton<String>(
+                showSelectedIcon: false,
+                segments: [for (final l in cfg.modelInfo!.effortLevels) ButtonSegment(value: l, label: Text(l))],
+                selected: {cfg.effort},
+                onSelectionChanged: (v) => cfg.effort = v.first,
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(4, 6, 4, 0),
+              child: Text('Higher effort = deeper analysis, slower and more tokens.', style: theme.textTheme.bodySmall),
+            ),
+          ],
+          section('Tools'),
+          Card(
+            child: Column(
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.query_stats),
+                  title: const Text('Bursa market tools'),
+                  subtitle: Text(
+                    '${AppTools.definitions.length} built-in tools: quotes, history, technicals, compare, '
+                    'market overview, watchlist, open charts',
+                  ),
+                  trailing: const Icon(Icons.check_circle, color: Colors.green),
+                ),
+                const Divider(height: 1),
+                SwitchListTile(
+                  secondary: const Icon(Icons.public),
+                  title: const Text('Web search & fetch'),
+                  subtitle: const Text('News, announcements and fundamentals'),
+                  value: cfg.webTools,
+                  onChanged: (v) => cfg.webTools = v,
+                ),
+              ],
+            ),
+          ),
+          section(
+            'MCP servers',
+            trailing: IconButton(
+              visualDensity: VisualDensity.compact,
+              tooltip: 'Add MCP server',
+              icon: Icon(_adding ? Icons.close : Icons.add, size: 20),
+              onPressed: () => setState(() => _adding = !_adding),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(4, 0, 4, 8),
+            child: Text(
+              'Connect remote MCP servers (https) to give Claude more tools. Claude connects to them directly.',
+              style: theme.textTheme.bodySmall,
+            ),
+          ),
+          AnimatedSize(
+            duration: const Duration(milliseconds: 220),
+            child: !_adding
+                ? const SizedBox(width: double.infinity)
+                : Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Column(
+                        children: [
+                          TextField(
+                            controller: _name,
+                            decoration: const InputDecoration(labelText: 'Name', isDense: true),
+                          ),
+                          const SizedBox(height: 8),
+                          TextField(
+                            controller: _url,
+                            keyboardType: TextInputType.url,
+                            decoration: const InputDecoration(labelText: 'Server URL (https://…)', isDense: true),
+                          ),
+                          const SizedBox(height: 8),
+                          TextField(
+                            controller: _token,
+                            obscureText: true,
+                            decoration: const InputDecoration(labelText: 'Auth token (optional)', isDense: true),
+                          ),
+                          const SizedBox(height: 10),
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: FilledButton.tonal(onPressed: _addServer, child: const Text('Add server')),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+          ),
+          for (final s in cfg.mcpServers)
+            Card(
+              child: SwitchListTile(
+                title: Text(s.name),
+                subtitle: Text(s.url, maxLines: 1, overflow: TextOverflow.ellipsis),
+                value: s.enabled,
+                onChanged: (v) => cfg.toggleMcp(s.name, v),
+                secondary: IconButton(icon: const Icon(Icons.delete_outline), onPressed: () => cfg.removeMcp(s.name)),
+              ),
+            ),
+        ],
       ],
     );
   }

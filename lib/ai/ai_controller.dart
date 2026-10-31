@@ -6,6 +6,7 @@ import '../data/bursa_stocks.dart';
 import '../services/app_state.dart';
 import 'ai_config.dart';
 import 'app_tools.dart';
+import 'claude_web.dart';
 import 'claude_client.dart';
 
 enum AiPage { chat, settings, login }
@@ -70,7 +71,16 @@ class AiController extends ChangeNotifier {
     notifyListeners();
   }
 
-  AiPage get page => !AiConfig.instance.signedIn ? AiPage.login : _page;
+  /// The claude.ai chat view, while it is mounted.
+  ClaudeWebChatState? webChat;
+
+  AiPage get page {
+    final cfg = AiConfig.instance;
+    if (!cfg.useClaudeAccount && !cfg.signedIn && _page != AiPage.settings) return AiPage.login;
+    if (_page == AiPage.login && (cfg.useClaudeAccount || cfg.signedIn)) return AiPage.chat;
+    return _page;
+  }
+
   set page(AiPage p) {
     _page = p;
     notifyListeners();
@@ -96,7 +106,8 @@ class AiController extends ChangeNotifier {
     _client.cancel();
   }
 
-  String _contextNote() {
+  /// Time, the stock on screen and the watchlist, for the model.
+  String appContext() {
     final now = DateTime.now().toUtc().add(const Duration(hours: 8));
     final viewing = AppState.instance.viewingSymbol;
     final known = viewing == null ? null : findKnown(viewing);
@@ -105,8 +116,10 @@ class AiController extends ChangeNotifier {
       if (viewing != null) 'User is viewing: $viewing${known != null ? ' (${known.name})' : ''}',
       'Watchlist: ${AppState.instance.watchlist.join(', ')}',
     ];
-    return '<app_context>\n${parts.join('\n')}\n</app_context>';
+    return parts.join('\n');
   }
+
+  String _contextNote() => '<app_context>\n${appContext()}\n</app_context>';
 
   List<Map<String, dynamic>> _tools(AiConfig cfg) {
     final tools = <Map<String, dynamic>>[

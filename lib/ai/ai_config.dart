@@ -90,6 +90,7 @@ class AiConfig extends ChangeNotifier {
   late SharedPreferences _prefs;
 
   String? _apiKey;
+  String _mode = 'claude';
   String _model = defaultModelId;
   String _effort = 'medium';
   bool _webTools = true;
@@ -97,6 +98,17 @@ class AiConfig extends ChangeNotifier {
   List<ModelInfo> _models = [];
 
   String? get apiKey => _apiKey;
+
+  /// 'claude': chat runs on claude.ai with the user's Claude login (no key).
+  /// 'api': chat calls the Claude API with the user's own API key.
+  String get mode => _mode;
+  bool get useClaudeAccount => _mode == 'claude';
+  set mode(String v) {
+    _mode = v;
+    _prefs.setString('ai_mode', v);
+    notifyListeners();
+  }
+
   bool get signedIn => (_apiKey ?? '').isNotEmpty;
   String get model => _model;
   String get effort => _effort;
@@ -120,6 +132,7 @@ class AiConfig extends ChangeNotifier {
     } catch (_) {
       _apiKey = null;
     }
+    _mode = _prefs.getString('ai_mode') ?? 'claude';
     _model = _prefs.getString('ai_model') ?? defaultModelId;
     _effort = _prefs.getString('ai_effort') ?? 'medium';
     _webTools = _prefs.getBool('ai_web') ?? true;

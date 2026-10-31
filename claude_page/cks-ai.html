@@ -1,0 +1,399 @@
+<title>CKS AI</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one-screen chat app — header, scrolling transcript, composer pinned to the bottom. Matches the CKS Stock Analyser app (Bursa market terminal). */
+:root {
+  --bg: #f6f7fb; --surface: #ffffff; --raise: #eef0f6; --line: #dfe3ec;
+  --fg: #141824; --muted: #5d6578; --accent: #2b5cff; --accent-fg: #ffffff;
+  --user: #dfe6ff; --user-fg: #142048;
+  --up: #0f9d6b; --down: #d63645; --clay: #d97757; --violet: #8e5bd9;
+  --display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0e1117; --surface: #151922; --raise: #1d2230; --line: #2a3142;
+  --fg: #e8ebf3; --muted: #9aa3b8; --accent: #7e9bff; --accent-fg: #0b1020;
+  --user: #24305c; --user-fg: #e3e9ff; --up: #16c784; --down: #ff5c6a; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #0e1117; --surface: #151922; --raise: #1d2230; --line: #2a3142;
+  --fg: #e8ebf3; --muted: #9aa3b8; --accent: #7e9bff; --accent-fg: #0b1020;
+  --user: #24305c; --user-fg: #e3e9ff; --up: #16c784; --down: #ff5c6a; color-scheme: dark }
+
+html, body { height: 100%; }
+body { background: var(--bg); color: var(--fg); font: 15px/1.5 var(--body); display: flex; flex-direction: column; overflow: hidden; }
+.app { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.gutter { padding-left: max(14px, env(safe-area-inset-left, 0px)); padding-right: max(14px, env(safe-area-inset-right, 0px)); }
+
+header { display: flex; align-items: center; gap: 10px; padding-block: 10px; border-bottom: 1px solid var(--line); background: var(--surface); }
+.mark { width: 32px; height: 32px; border-radius: 50%; flex: none; background: linear-gradient(135deg, var(--clay), var(--violet)); display: grid; place-items: center; }
+.mark svg { width: 18px; height: 18px; fill: #fff; }
+.titles { flex: 1; min-width: 0; }
+h1 { margin: 0; font: 700 17px/1.2 var(--display); letter-spacing: -0.01em; }
+.sub { font-size: 12px; color: var(--muted); display: flex; gap: 6px; align-items: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dot { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); flex: none; }
+.dot.on { background: var(--up); }
+button { font: inherit; color: inherit; }
+.icon-btn { border: 0; background: transparent; width: 38px; height: 38px; border-radius: 10px; display: grid; place-items: center; cursor: pointer; color: var(--muted); }
+.icon-btn:hover { background: var(--raise); color: var(--fg); }
+.icon-btn svg { width: 20px; height: 20px; fill: currentColor; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.engine { display: none; gap: 10px; flex-direction: column; padding-block: 12px; background: var(--surface); border-bottom: 1px solid var(--line); }
+.engine.open { display: flex; }
+.engine label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+.seg { display: flex; flex-wrap: wrap; gap: 6px; }
+.seg button { border: 1px solid var(--line); background: var(--bg); padding: 6px 12px; border-radius: 999px; cursor: pointer; font-size: 13px; }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
+.hint { font-size: 12px; color: var(--muted); margin: 0; }
+
+main { flex: 1; min-height: 0; overflow-y: auto; padding-block: 14px; display: flex; flex-direction: column; gap: 14px; scroll-behavior: smooth; }
+.welcome h2 { font: 700 21px/1.25 var(--display); margin: 4px 0 6px; text-wrap: balance; letter-spacing: -0.01em; }
+.welcome p { margin: 0 0 14px; color: var(--muted); max-width: 60ch; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { border: 1px solid var(--line); background: var(--surface); border-radius: 12px; padding: 8px 12px; cursor: pointer; text-align: left; font-size: 14px; }
+.chip:hover { border-color: var(--accent); }
+.chip .code { font-family: var(--mono); font-size: 12px; color: var(--accent); margin-right: 6px; }
+.notice { font-size: 13px; color: var(--muted); background: var(--raise); border-radius: 12px; padding: 10px 12px; }
+
+.msg { max-width: 100%; min-width: 0; }
+.msg.user { align-self: flex-end; max-width: 85%; background: var(--user); color: var(--user-fg); padding: 9px 14px; border-radius: 18px 18px 4px 18px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.msg.bot { align-self: stretch; }
+.steps { display: flex; flex-direction: column; gap: 4px; margin-bottom: 6px; }
+.step { display: inline-flex; align-self: flex-start; align-items: center; gap: 8px; font-size: 12.5px; color: var(--muted); background: var(--raise); border-radius: 9px; padding: 4px 10px; max-width: 100%; }
+.step span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.step i { width: 12px; height: 12px; border-radius: 50%; flex: none; border: 2px solid var(--accent); border-right-color: transparent; animation: spin .8s linear infinite; }
+.step.done i { border: 0; background: var(--up); animation: none; }
+.step.fail i { border: 0; background: var(--down); animation: none; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.typing { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 13px; }
+.typing b { display: inline-flex; gap: 4px; }
+.typing b span { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); animation: pulse 1.1s infinite ease-in-out; }
+.typing b span:nth-child(2) { animation-delay: .15s; } .typing b span:nth-child(3) { animation-delay: .3s; }
+@keyframes pulse { 0%, 100% { opacity: .25; } 50% { opacity: 1; } }
+.md { overflow-wrap: anywhere; }
+.md > :first-child { margin-top: 0; } .md > :last-child { margin-bottom: 0; }
+.md p, .md ul, .md ol { margin: 0 0 10px; }
+.md ul, .md ol { padding-left: 20px; }
+.md h1, .md h2, .md h3 { font: 700 16px/1.3 var(--display); margin: 14px 0 6px; }
+.md code { font-family: var(--mono); font-size: 13px; background: var(--raise); padding: 1px 5px; border-radius: 5px; }
+.md pre { background: var(--raise); padding: 10px; border-radius: 10px; overflow-x: auto; }
+.md a { color: var(--accent); }
+.md .tbl { overflow-x: auto; margin: 0 0 10px; border: 1px solid var(--line); border-radius: 10px; }
+.md table { border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; min-width: 100%; }
+.md th, .md td { padding: 6px 10px; border-bottom: 1px solid var(--line); text-align: left; white-space: nowrap; }
+.md th { background: var(--raise); font-weight: 600; }
+.md tr:last-child td { border-bottom: 0; }
+.meta { font-size: 11.5px; color: var(--muted); margin-top: 6px; }
+.err { color: var(--down); font-size: 13px; margin-top: 6px; }
+
+footer { padding-block: 10px 12px; border-top: 1px solid var(--line); background: var(--surface); }
+form { display: flex; gap: 8px; align-items: flex-end; }
+textarea { flex: 1; min-width: 0; resize: none; border: 1px solid var(--line); background: var(--bg); color: var(--fg); border-radius: 14px; padding: 10px 14px; font: 15px/1.4 var(--body); max-height: 140px; }
+textarea:focus { outline: none; border-color: var(--accent); }
+.send { width: 44px; height: 44px; border-radius: 50%; border: 0; background: var(--accent); color: var(--accent-fg); display: grid; place-items: center; cursor: pointer; flex: none; }
+.send:disabled { opacity: .4; cursor: default; }
+.send svg { width: 20px; height: 20px; fill: currentColor; }
+.disclaimer { font-size: 11px; color: var(--muted); margin: 6px 2px 0; }
+@media (prefers-reduced-motion: reduce) { .step i, .typing b span { animation: none; } main { scroll-behavior: auto; } }
+</style>
+
+<div class="app">
+  <header class="gutter">
+    <div class="mark" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 2l1.9 5.6L19.5 9.5l-5.6 1.9L12 17l-1.9-5.6L4.5 9.5l5.6-1.9zM19 14l.9 2.6 2.6.9-2.6.9L19 21l-.9-2.6-2.6-.9 2.6-.9z"/></svg></div>
+    <div class="titles">
+      <h1>CKS AI</h1>
+      <div class="sub"><span class="dot" id="liveDot"></span><span id="status">Connecting to the app…</span></div>
+    </div>
+    <button class="icon-btn" id="engineBtn" type="button" aria-label="Choose AI engine" aria-expanded="false"><svg viewBox="0 0 24 24"><path d="M3 17v2h6v-2H3zM3 5v2h10V5H3zm10 16v-2h8v-2h-8v-2h-2v6h2zM7 9v2H3v2h4v2h2V9H7zm14 4v-2H11v2h10zm-6-4h2V7h4V5h-4V3h-2v6z"/></svg></button>
+    <button class="icon-btn" id="newBtn" type="button" aria-label="New chat"><svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg></button>
+  </header>
+
+  <section class="engine gutter" id="engine" aria-label="AI engine">
+    <div><label>Engine</label></div>
+    <div class="seg" id="tierSeg">
+      <button type="button" data-tier="quick">Fast</button>
+      <button type="button" data-tier="default">Balanced</button>
+      <button type="button" data-tier="complex">Most capable</button>
+    </div>
+    <div class="seg" id="modelSeg">
+      <button type="button" data-model="">Auto</button>
+      <button type="button" data-model="claude-opus-5-5">Opus 5.5</button>
+      <button type="button" data-model="claude-sonnet-5-5">Sonnet 5.5</button>
+      <button type="button" data-model="claude-haiku-5-5">Haiku 5.5</button>
+      <button type="button" data-model="claude-fable-5-1">Fable 5.1</button>
+    </div>
+    <div><label>Thinking</label></div>
+    <div class="seg" id="effortSeg">
+      <button type="button" data-effort="low">Light</button>
+      <button type="button" data-effort="medium">Normal</button>
+      <button type="button" data-effort="high">Deep</button>
+    </div>
+    <p class="hint">Runs on your own Claude plan. A named model is used when your plan offers it; otherwise the engine tier answers.</p>
+  </section>
+
+  <main class="gutter" id="log" aria-live="polite">
+    <div class="welcome" id="welcome">
+      <h2>Ask anything about Bursa Malaysia.</h2>
+      <p id="welcomeText">I read live quotes and charts from the CKS app, run technical analysis, compare counters and manage your watchlist.</p>
+      <div class="chips" id="chips"></div>
+    </div>
+  </main>
+
+  <footer class="gutter">
+    <form id="form">
+      <textarea id="input" rows="1" placeholder="Ask about any Bursa stock…" aria-label="Message"></textarea>
+      <button class="send" id="sendBtn" type="submit" aria-label="Send" disabled><svg viewBox="0 0 24 24"><path d="M4 12l1.4 1.4L11 7.8V20h2V7.8l5.6 5.6L20 12l-8-8z"/></svg></button>
+    </form>
+    <p class="disclaimer">Prices may be delayed. Information only, not financial advice.</p>
+  </footer>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.6/purify.min.js"></script>
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const log = $("log"), input = $("input"), sendBtn = $("sendBtn");
+  const store = {
+    get(k, d) { try { return localStorage.getItem(k) ?? d; } catch { return d; } },
+    set(k, v) { try { localStorage.setItem(k, v); } catch {} },
+  };
+
+  // ── Bridge to the CKS Android app ────────────────────────────────────────
+  // The app injects `CksBridge` into this page and answers by posting
+  // {cks: "result", id, ok, output} messages back.
+  const pending = new Map();
+  const hasBridge = () => typeof window.CksBridge !== "undefined" && window.CksBridge && typeof window.CksBridge.postMessage === "function";
+  window.addEventListener("message", (e) => {
+    const d = e.data;
+    if (!d || d.cks !== "result" || !pending.has(d.id)) return;
+    const p = pending.get(d.id);
+    pending.delete(d.id);
+    clearTimeout(p.timer);
+    d.ok ? p.resolve(d.output) : p.reject(new Error(String(d.output || "Tool failed")));
+  });
+  function callApp(tool, input) {
+    return new Promise((resolve, reject) => {
+      if (!hasBridge()) return reject(new Error("Not running inside the CKS app"));
+      const id = Math.random().toString(36).slice(2) + Date.now().toString(36);
+      const timer = setTimeout(() => { pending.delete(id); reject(new Error("The app did not answer in time")); }, 45000);
+      pending.set(id, { resolve, reject, timer });
+      window.CksBridge.postMessage(JSON.stringify({ id, tool, input: input || {} }));
+    });
+  }
+
+  const SYMBOL = { type: "string", description: 'Bursa stock: 4-digit code ("1155"), Yahoo symbol ("1155.KL"), short name ("MAYBANK"), or "^KLSE" for the FBM KLCI.' };
+  const RANGE = { type: "string", enum: ["1mo", "3mo", "6mo", "1y", "2y", "5y"], description: "History range (daily bars; 5y weekly)." };
+  const TOOL_DEFS = [
+    ["search_stocks", "Find Bursa counters by name, code or sector. Returns symbols and names. Use when unsure of a code.", { query: { type: "string" } }, ["query"], (i) => `Searching "${i.query ?? ""}"`],
+    ["get_quote", "Latest price, change, day range, volume and 52-week range for up to 20 stocks (delayed ~15 min).", { symbols: { type: "array", items: SYMBOL } }, ["symbols"], (i) => `Quote ${[].concat(i.symbols || []).join(", ")}`],
+    ["get_technical_analysis", "SMA20/50/200, RSI(14), MACD, Bollinger, volume vs average, returns, 52-week position and the app's analyzer score (-100..100) for one stock.", { symbol: SYMBOL, range: RANGE }, ["symbol"], (i) => `Analysing ${i.symbol ?? ""}`],
+    ["get_price_history", "OHLCV history for one stock as CSV, newest first, at most 120 rows.", { symbol: SYMBOL, range: RANGE }, ["symbol"], (i) => `Price history ${i.symbol ?? ""}`],
+    ["compare_stocks", "Side-by-side comparison of 2-10 stocks: price, returns, RSI, trend vs SMA50/200, analyzer score.", { symbols: { type: "array", items: SYMBOL } }, ["symbols"], (i) => `Comparing ${[].concat(i.symbols || []).join(", ")}`],
+    ["get_market_overview", "FBM KLCI level and change, breadth, sector performance, top gainers, losers and most active KLCI stocks.", {}, [], () => "Reading the market"],
+    ["get_watchlist", "The user's watchlist in the app, with quotes.", {}, [], () => "Reading your watchlist"],
+    ["update_watchlist", "Add or remove a stock from the user's watchlist. Only when the user asks.", { action: { type: "string", enum: ["add", "remove"] }, symbol: SYMBOL }, ["action", "symbol"], (i) => `${i.action === "remove" ? "Removing" : "Adding"} ${i.symbol ?? ""}`],
+    ["open_stock_chart", "Open the stock's chart screen in the app (the chat minimises). Use when the user asks to see a chart.", { symbol: SYMBOL }, ["symbol"], (i) => `Opening chart ${i.symbol ?? ""}`],
+  ];
+
+  const RULES = `You are CKS AI, the assistant inside "CKS Stock Analyser", an Android app for the Bursa Malaysia stock market.
+Help the user understand Malaysian stocks: prices, trends, technical analysis, comparisons and market conditions.
+Use the app tools for any market data and never invent prices or indicator values. If unsure of a company's 4-digit code, call search_stocks first.
+Prices are in Ringgit (RM) and may be delayed about 15 minutes; times are Malaysia time (UTC+8). The FBM KLCI index is ^KLSE.
+You are shown in a small phone/tablet chat panel: lead with the answer, keep it short, use bullets and small markdown tables.
+Only change the watchlist when asked. This is information, not financial advice: when giving a view, mention the main risks.`;
+
+  // ── Engine choice ────────────────────────────────────────────────────────
+  const prefs = { tier: store.get("cks.tier", "default"), model: store.get("cks.model", ""), effort: store.get("cks.effort", "medium") };
+  function paintSeg(segId, attr, value) {
+    for (const b of $(segId).querySelectorAll("button")) b.setAttribute("aria-pressed", String(b.dataset[attr] === value));
+  }
+  function paintEngine() { paintSeg("tierSeg", "tier", prefs.tier); paintSeg("modelSeg", "model", prefs.model); paintSeg("effortSeg", "effort", prefs.effort); }
+  for (const [segId, attr] of [["tierSeg", "tier"], ["modelSeg", "model"], ["effortSeg", "effort"]]) {
+    $(segId).addEventListener("click", (e) => {
+      const b = e.target.closest("button"); if (!b) return;
+      prefs[attr] = b.dataset[attr]; store.set("cks." + attr, prefs[attr]); paintEngine(); updateStatus();
+    });
+  }
+  $("engineBtn").addEventListener("click", () => {
+    const open = $("engine").classList.toggle("open");
+    $("engineBtn").setAttribute("aria-expanded", String(open));
+  });
+  paintEngine();
+
+  // ── State ────────────────────────────────────────────────────────────────
+  let sample = null, toolsOk = false, maxTools = TOOL_DEFS.length, turns = [], busy = false, ctl = null, blocked = false;
+
+  function engineLabel() {
+    const m = $("modelSeg").querySelector(`[data-model="${prefs.model}"]`);
+    const t = $("tierSeg").querySelector(`[data-tier="${prefs.tier}"]`);
+    return prefs.model ? m.textContent : t.textContent;
+  }
+  function updateStatus(text) {
+    const live = hasBridge();
+    $("liveDot").classList.toggle("on", live && !!sample);
+    $("status").textContent = text || (sample === null ? "Claude is not available here" : `${engineLabel()} · ${live ? "live market data" : "no market data (open in the CKS app)"}`);
+  }
+
+  function renderChips() {
+    const chips = $("chips"); chips.textContent = "";
+    const items = [
+      ["", "How is the KLCI doing today?"],
+      ["1155", "Analyse Maybank for me"],
+      ["", "Which KLCI stocks look oversold?"],
+      ["", "Compare Maybank, Public Bank and CIMB"],
+      ["", "Summarise my watchlist"],
+    ];
+    for (const [code, text] of items) {
+      const b = document.createElement("button");
+      b.type = "button"; b.className = "chip";
+      if (code) { const s = document.createElement("span"); s.className = "code"; s.textContent = code; b.append(s); }
+      b.append(text);
+      b.addEventListener("click", () => { input.value = text; send(); });
+      chips.append(b);
+    }
+  }
+  renderChips();
+
+  function scrollDown() { log.scrollTop = log.scrollHeight; }
+  function md(el, text) {
+    const html = window.marked ? window.marked.parse(text, { gfm: true, breaks: false }) : null;
+    if (html && window.DOMPurify) {
+      el.innerHTML = window.DOMPurify.sanitize(html);
+      for (const t of el.querySelectorAll("table")) { const w = document.createElement("div"); w.className = "tbl"; t.replaceWith(w); w.append(t); }
+      for (const a of el.querySelectorAll("a")) { a.target = "_blank"; a.rel = "noopener"; }
+    } else {
+      el.textContent = text;
+    }
+  }
+  function addUser(text) {
+    const d = document.createElement("div"); d.className = "msg user"; d.textContent = text; log.append(d);
+  }
+  function addBot() {
+    const wrap = document.createElement("div"); wrap.className = "msg bot";
+    const steps = document.createElement("div"); steps.className = "steps";
+    const body = document.createElement("div"); body.className = "md";
+    const typing = document.createElement("div"); typing.className = "typing";
+    typing.innerHTML = "<b><span></span><span></span><span></span></b><span>Thinking…</span>";
+    wrap.append(steps, typing, body); log.append(wrap); scrollDown();
+    return { wrap, steps, body, typing };
+  }
+
+  function buildTools(ui) {
+    return TOOL_DEFS.slice(0, maxTools).map(([name, description, props, required, label]) => ({
+      name, description,
+      inputSchema: { type: "object", properties: props, required },
+      async execute(args, context) {
+        const step = document.createElement("div"); step.className = "step";
+        const i = document.createElement("i"); const s = document.createElement("span"); s.textContent = label(args || {});
+        step.append(i, s); ui.steps.append(step); scrollDown();
+        ui.typing.querySelector("span:last-child").textContent = "Working…";
+        try {
+          const out = await callApp(name, args || {});
+          if (context.signal.aborted) throw new Error("Stopped");
+          step.classList.add("done");
+          return out;
+        } catch (e) {
+          step.classList.add("fail");
+          throw e;
+        }
+      },
+    }));
+  }
+
+  async function appContext() {
+    if (!hasBridge()) return "Live market data is NOT available in this view (the page is not open inside the CKS app). Say so if the user asks for prices.";
+    try { return "App context: " + (await callApp("get_app_context", {})); } catch { return ""; }
+  }
+
+  async function send() {
+    const text = input.value.trim();
+    if (!text || busy || blocked) return;
+    if (!sample) { updateStatus("Claude is not available in this view"); return; }
+    busy = true; input.value = ""; autosize(); setSendState();
+    $("welcome").hidden = true;
+    addUser(text);
+    const ui = addBot();
+    turns.push({ role: "user", content: text });
+    const ctx = await appContext();
+    const history = turns.slice(-16);
+    if (history[0].role !== "user") history.shift();
+    const opts = {
+      cache: false,
+      onText: ({ text }) => { ui.typing.hidden = true; md(ui.body, text); scrollDown(); },
+      modelTier: prefs.tier,
+      effort: prefs.effort,
+    };
+    if (prefs.model) opts.model = prefs.model;
+    if (toolsOk && hasBridge()) opts.tools = buildTools(ui);
+    ctl = new AbortController(); opts.signal = ctl.signal;
+    try {
+      const res = await sample([{ role: "user", content: RULES + "\n\n" + ctx }, ...history], opts);
+      md(ui.body, res.text);
+      turns.push({ role: "assistant", content: res.text });
+      const meta = document.createElement("div"); meta.className = "meta";
+      const tierName = { quick: "Fast", default: "Balanced", complex: "Most capable" }[res.modelTierApplied] || res.modelTierApplied;
+      meta.textContent = (res.modelApplied ? res.modelApplied.replace("claude-", "Claude ").replace(/-(\d)-(\d)$/, " $1.$2") : tierName + " engine") + (res.truncated ? " · cut short, ask for less at a time" : "");
+      ui.wrap.append(meta);
+    } catch (e) {
+      if (e && e.text) md(ui.body, e.text); else if (!e || e.code !== "cancelled") ui.body.textContent = "";
+      turns.pop();
+      const msg = {
+        cancelled: "Stopped.",
+        not_granted: "Claude access wasn't allowed for this page. Reload the chat to be asked again.",
+        sampling_disabled: "Claude isn't available on this account.",
+        session_expired: "Your Claude session expired. Sign in again.",
+        rate_limited: "You've reached a Claude usage limit for now. Try again later.",
+        refused: "Claude declined that request. Try rephrasing it.",
+        empty_completion: "No answer came back. Try asking more simply.",
+        tools_unavailable: "Market tools aren't available in this view.",
+        prompt_too_large: "The conversation is too long. Start a new chat.",
+      }[e && e.code] || "Something went wrong reaching Claude. Try again.";
+      if (["not_granted", "sampling_disabled", "not_declared", "capability_disabled"].includes(e && e.code)) blocked = true;
+      const d = document.createElement("div"); d.className = e && e.code === "cancelled" ? "meta" : "err"; d.textContent = msg; ui.wrap.append(d);
+    } finally {
+      ui.typing.hidden = true;
+      busy = false; ctl = null; setSendState(); scrollDown();
+    }
+  }
+
+  function setSendState() {
+    sendBtn.disabled = !busy && !input.value.trim();
+    sendBtn.setAttribute("aria-label", busy ? "Stop" : "Send");
+    sendBtn.innerHTML = busy
+      ? '<svg viewBox="0 0 24 24"><path d="M6 6h12v12H6z"/></svg>'
+      : '<svg viewBox="0 0 24 24"><path d="M4 12l1.4 1.4L11 7.8V20h2V7.8l5.6 5.6L20 12l-8-8z"/></svg>';
+  }
+  function autosize() { input.style.height = "auto"; input.style.height = Math.min(input.scrollHeight, 140) + "px"; }
+  input.addEventListener("input", () => { autosize(); setSendState(); });
+  input.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey && !e.isComposing && window.matchMedia("(pointer: fine)").matches) { e.preventDefault(); send(); } });
+  $("form").addEventListener("submit", (e) => { e.preventDefault(); if (busy) ctl?.abort(); else send(); });
+  $("newBtn").addEventListener("click", () => {
+    ctl?.abort(); turns = [];
+    for (const el of [...log.querySelectorAll(".msg")]) el.remove();
+    $("welcome").hidden = false; input.focus();
+  });
+
+  // ── Start ────────────────────────────────────────────────────────────────
+  updateStatus("Connecting…");
+  if (window.claude && typeof window.claude.use === "function") {
+    window.claude.use("sample").then(async (s) => {
+      sample = s;
+      if (s) {
+        const lim = await s.limits().catch(() => null);
+        toolsOk = !!(lim && lim.tools);
+        if (lim && lim.tools && lim.tools.maxCount) maxTools = Math.min(TOOL_DEFS.length, lim.tools.maxCount);
+      }
+      if (!hasBridge()) $("welcomeText").textContent = "Open this chat from the CKS Stock Analyser app to give me live Bursa quotes and charts. Here I can still answer general questions.";
+      updateStatus();
+    });
+  } else {
+    sample = null; updateStatus("Open this page on claude.ai to chat");
+  }
+  // The app may inject the bridge a moment after load.
+  setTimeout(() => updateStatus(busy ? undefined : undefined), 1500);
+})();
+</script>

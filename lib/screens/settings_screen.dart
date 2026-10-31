@@ -86,7 +86,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       leading: const Icon(Icons.auto_awesome),
                       title: const Text('Claude AI'),
                       subtitle: Text(
-                        AiConfig.instance.signedIn
+                        AiConfig.instance.useClaudeAccount
+                            ? 'Your Claude account (claude.ai sign-in)'
+                            : AiConfig.instance.signedIn
                             ? 'Connected · ${AiConfig.instance.modelLabel}'
                             : 'Not connected. Tap to sign in',
                       ),
