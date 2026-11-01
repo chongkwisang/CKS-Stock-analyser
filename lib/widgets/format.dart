@@ -1,5 +1,7 @@
 import 'package:intl/intl.dart';
 
+import '../services/app_state.dart';
+
 final _price3 = NumberFormat('#,##0.000');
 final _price2 = NumberFormat('#,##0.00');
 final _compact = NumberFormat.compact();
@@ -10,4 +12,5 @@ String fmtChange(double v) => '${v >= 0 ? '+' : ''}${fmtPrice(v)}';
 String fmtPct(double v) => '${v >= 0 ? '+' : ''}${v.toStringAsFixed(2)}%';
 String fmtVol(double v) => _compact.format(v);
 String fmtDate(DateTime t, {bool time = false}) =>
-    DateFormat(time ? 'd MMM HH:mm' : 'd MMM yyyy').format(t.toUtc().add(const Duration(hours: 8)));
+    DateFormat(AppState.instance.isChinese ? (time ? 'M/d HH:mm' : 'yyyy/M/d') : (time ? 'd MMM HH:mm' : 'd MMM yyyy'))
+        .format(t.toUtc().add(const Duration(hours: 8)));

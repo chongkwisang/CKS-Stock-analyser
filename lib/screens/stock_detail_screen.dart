@@ -8,6 +8,7 @@ import '../services/market_api.dart';
 import '../theme.dart';
 import '../widgets/format.dart';
 import '../widgets/price_chart.dart';
+import '../l10n.dart';
 
 /// Full stock view. Used as a pushed page on phones and embedded in the
 /// right pane on tablets ([embedded] = true).
@@ -101,14 +102,14 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
             ),
             actions: [
               IconButton(
-                tooltip: AppState.instance.candles ? 'Line chart' : 'Candlestick chart',
+                tooltip: AppState.instance.candles ? t('Line chart') : t('Candlestick chart'),
                 icon: Icon(AppState.instance.candles ? Icons.show_chart : Icons.candlestick_chart),
                 onPressed: () => AppState.instance.candles = !AppState.instance.candles,
               ),
-              IconButton(tooltip: 'Refresh', icon: const Icon(Icons.refresh), onPressed: () => _load(force: true)),
+              IconButton(tooltip: t('Refresh'), icon: const Icon(Icons.refresh), onPressed: () => _load(force: true)),
               if (widget.symbol != klciSymbol)
                 IconButton(
-                  tooltip: watched ? 'Remove from watchlist' : 'Add to watchlist',
+                  tooltip: watched ? t('Remove from watchlist') : t('Add to watchlist'),
                   icon: Icon(watched ? Icons.star : Icons.star_outline, color: watched ? Colors.amber : null),
                   onPressed: () => AppState.instance.toggleWatch(widget.symbol),
                 ),
@@ -210,7 +211,7 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
             sel != null
                 ? '${fmtDate(sel.time, time: _range.intraday)}  O ${fmtPrice(sel.open)}  H ${fmtPrice(sel.high)}  L ${fmtPrice(sel.low)}  C ${fmtPrice(sel.close)}  V ${fmtVol(sel.volume)}'
                 : q.marketTime != null
-                ? 'As of ${fmtDate(q.marketTime!, time: true)} MYT · data may be delayed'
+                ? tf('As of {time} MYT · data may be delayed', {'time': fmtDate(q.marketTime!, time: true)})
                 : '',
             style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
           ),
@@ -249,7 +250,7 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
           _toggle('MA20', _sma20, smaColors.$1, (v) => setState(() => _sma20 = v)),
           _toggle('MA50', _sma50, smaColors.$2, (v) => setState(() => _sma50 = v)),
           _toggle('MA200', _sma200, smaColors.$3, (v) => setState(() => _sma200 = v)),
-          _toggle('BOLL', _bb, theme.colorScheme.primary, (v) => setState(() => _bb = v)),
+          _toggle(t('BOLL'), _bb, theme.colorScheme.primary, (v) => setState(() => _bb = v)),
           _toggle('RSI', _showRsi, theme.colorScheme.tertiary, (v) => setState(() => _showRsi = v)),
           _toggle('MACD', _showMacd, theme.colorScheme.secondary, (v) => setState(() => _showMacd = v)),
         ],
@@ -352,14 +353,15 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
     final c = d.candles;
     final today = c.isNotEmpty ? c.last : null;
     final stats = <(String, String)>[
-      ('Prev close', fmtPrice(q.previousClose)),
-      ('Open', today != null && !_range.intraday ? fmtPrice(today.open) : '—'),
-      ('Day high', q.dayHigh != null ? fmtPrice(q.dayHigh!) : '—'),
-      ('Day low', q.dayLow != null ? fmtPrice(q.dayLow!) : '—'),
-      ('Volume', q.volume != null ? fmtVol(q.volume!) : '—'),
-      ('52W high', q.fiftyTwoWeekHigh != null ? fmtPrice(q.fiftyTwoWeekHigh!) : '—'),
-      ('52W low', q.fiftyTwoWeekLow != null ? fmtPrice(q.fiftyTwoWeekLow!) : '—'),
-      if (c.length > 1) ('${_range.label} return', fmtPct((c.last.close / c.first.close - 1) * 100)),
+      (t('Prev close'), fmtPrice(q.previousClose)),
+      (t('Open'), today != null && !_range.intraday ? fmtPrice(today.open) : '—'),
+      (t('Day high'), q.dayHigh != null ? fmtPrice(q.dayHigh!) : '—'),
+      (t('Day low'), q.dayLow != null ? fmtPrice(q.dayLow!) : '—'),
+      (t('Volume'), q.volume != null ? fmtVol(q.volume!) : '—'),
+      (t('52W high'), q.fiftyTwoWeekHigh != null ? fmtPrice(q.fiftyTwoWeekHigh!) : '—'),
+      (t('52W low'), q.fiftyTwoWeekLow != null ? fmtPrice(q.fiftyTwoWeekLow!) : '—'),
+      if (c.length > 1)
+        (tf('{range} return', {'range': _range.label}), fmtPct((c.last.close / c.first.close - 1) * 100)),
     ];
     final analysis = _range.intraday ? null : Analyzer.analyze(c);
 
@@ -371,7 +373,7 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Key statistics', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+              Text(t('Key statistics'), style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
               const SizedBox(height: 8),
               GridView.count(
                 crossAxisCount: 2,
@@ -404,7 +406,7 @@ class _StockDetailScreenState extends State<StockDetailScreen> {
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Text(
-              'Switch to a daily range (1M or longer) to see the analysis.',
+              t('Switch to a daily range (1M or longer) to see the analysis.'),
               style: theme.textTheme.bodyMedium,
             ),
           ),
@@ -427,9 +429,9 @@ class _AnalysisCard extends StatelessWidget {
     };
     final overall = result.overall;
     final label = switch (overall) {
-      SignalBias.bullish => 'BULLISH',
-      SignalBias.bearish => 'BEARISH',
-      SignalBias.neutral => 'NEUTRAL',
+      SignalBias.bullish => t('BULLISH'),
+      SignalBias.bearish => t('BEARISH'),
+      SignalBias.neutral => t('NEUTRAL'),
     };
     return Card(
       child: Padding(
@@ -441,7 +443,7 @@ class _AnalysisCard extends StatelessWidget {
               children: [
                 Expanded(
                   child: Text(
-                    'Technical analysis',
+                    t('Technical analysis'),
                     style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
                   ),
                 ),
@@ -492,7 +494,7 @@ class _AnalysisCard extends StatelessWidget {
               ),
             const SizedBox(height: 8),
             Text(
-              'For information only — not financial advice.',
+              t('For information only — not financial advice.'),
               style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.outline),
             ),
           ],
@@ -548,14 +550,14 @@ class _ScoreBar extends StatelessWidget {
         const SizedBox(height: 4),
         Row(
           children: [
-            Text('Bearish', style: theme.textTheme.labelSmall),
+            Text(t('Bearish'), style: theme.textTheme.labelSmall),
             const Spacer(),
             Text(
-              'Score ${score > 0 ? '+' : ''}$score',
+              tf('Score {score}', {'score': '${score > 0 ? '+' : ''}$score'}),
               style: theme.textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w700),
             ),
             const Spacer(),
-            Text('Bullish', style: theme.textTheme.labelSmall),
+            Text(t('Bullish'), style: theme.textTheme.labelSmall),
           ],
         ),
       ],
@@ -578,7 +580,7 @@ class _ErrorView extends StatelessWidget {
           const SizedBox(height: 12),
           Text('$error', textAlign: TextAlign.center),
           const SizedBox(height: 12),
-          FilledButton.tonal(onPressed: onRetry, child: const Text('Retry')),
+          FilledButton.tonal(onPressed: onRetry, child: Text(t('Retry'))),
         ],
       ),
     ),

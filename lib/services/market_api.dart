@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 import '../data/bursa_stocks.dart';
+import '../l10n.dart';
 
 class Candle {
   final DateTime time;
@@ -104,15 +105,15 @@ class MarketApi {
           return jsonDecode(res.body) as Map<String, dynamic>;
         }
         if (res.statusCode == 404) {
-          throw MarketApiException('Symbol not found');
+          throw MarketApiException(t('Symbol not found'));
         }
         lastError = MarketApiException('Server error ${res.statusCode}');
       } on MarketApiException {
         rethrow;
       } on TimeoutException {
-        lastError = MarketApiException('Request timed out');
+        lastError = MarketApiException(t('Request timed out'));
       } catch (e) {
-        lastError = MarketApiException('Network error. Check your connection.');
+        lastError = MarketApiException(t('Network error. Check your connection.'));
       }
     }
     throw lastError ?? MarketApiException('Unknown error');
@@ -134,7 +135,7 @@ class MarketApi {
     final results = chart?['result'] as List?;
     if (results == null || results.isEmpty) {
       final err = chart?['error'];
-      throw MarketApiException(err is Map ? '${err['description'] ?? 'No data'}' : 'No data');
+      throw MarketApiException(err is Map ? '${err['description'] ?? t('No data')}' : t('No data'));
     }
     final r = results.first as Map<String, dynamic>;
     final meta = (r['meta'] as Map).cast<String, dynamic>();

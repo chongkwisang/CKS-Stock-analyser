@@ -8,6 +8,7 @@ import 'package:webview_flutter_android/webview_flutter_android.dart';
 
 import 'ai_controller.dart';
 import 'app_tools.dart';
+import '../l10n.dart';
 
 /// The CKS AI chat page, hosted on claude.ai. It runs on the signed-in
 /// viewer's own Claude plan (no API key) and reaches the app's market tools
@@ -18,9 +19,13 @@ const claudeChatUrl = 'https://claude.ai/artifact/Fw3oDijVjE9ZUPiE3dDQTZ';
 bool _socialLogin(Uri u) =>
     u.host == 'accounts.google.com' || u.host.endsWith('.google.com') || u.host == 'appleid.apple.com';
 
-const _useEmailNotice =
-    'Google and Apple sign-in don\'t work inside apps. Tap "Continue with email", then enter the code from '
-    'Claude\'s email, or copy the sign-in link from the email and tap "Paste sign-in link" below.';
+String get _useEmailNotice => t(
+  t(
+    t(
+      'Google and Apple sign-in don\'t work inside apps. Tap "Continue with email", then enter the code from Claude\'s email, or copy the sign-in link from the email and tap "Paste sign-in link" below.',
+    ),
+  ),
+);
 
 /// Hosts the in-app browser may navigate to; anything else opens outside.
 bool _allowedHost(String host) {
@@ -91,7 +96,7 @@ class ClaudeWebChatState extends State<ClaudeWebChat> {
           onWebResourceError: (e) {
             _log('error ${e.errorCode} ${e.description} ${e.url ?? ''}');
             if (e.isForMainFrame == true && mounted) {
-              setState(() => _error = 'Could not load Claude (${e.description}). Check your connection.');
+              setState(() => _error = tf('Could not load Claude ({e}). Check your connection.', {'e': e.description}));
             }
           },
           onNavigationRequest: (req) {
@@ -158,9 +163,13 @@ class ClaudeWebChatState extends State<ClaudeWebChat> {
     final match = RegExp(r'https://(www\.)?claude\.ai/\S+').firstMatch(text);
     if (match == null) {
       setState(
-        () => _notice =
-            'No claude.ai link on the clipboard. In Claude\'s sign-in email, long-press the sign-in '
-            'button or link, choose "Copy link address", then tap "Paste sign-in link" again.',
+        () => _notice = t(
+          t(
+            t(
+              'No claude.ai link on the clipboard. In Claude\'s sign-in email, long-press the sign-in button or link, choose "Copy link address", then tap "Paste sign-in link" again.',
+            ),
+          ),
+        ),
       );
       return;
     }
@@ -212,8 +221,7 @@ class ClaudeWebChatState extends State<ClaudeWebChat> {
     // The chat page lives in a nested claude.ai frame: deliver to every frame;
     // the page only accepts results for ids it is waiting on.
     await _web.runJavaScript(
-      '(function(m){function s(w){try{w.postMessage(m,"*")}catch(e){}'
-      'try{for(var i=0;i<w.frames.length;i++)s(w.frames[i])}catch(e){}}s(window)})($msg);',
+      '(function(m){function s(w){try{w.postMessage(m,"*")}catch(e){}try{for(var i=0;i<w.frames.length;i++)s(w.frames[i])}catch(e){}}s(window)})($msg);',
     );
   }
 
@@ -256,7 +264,7 @@ class ClaudeWebChatState extends State<ClaudeWebChat> {
                       child: Text(_notice!, style: TextStyle(color: Theme.of(context).colorScheme.onTertiaryContainer)),
                     ),
                     IconButton(
-                      tooltip: 'Dismiss',
+                      tooltip: t('Dismiss'),
                       icon: const Icon(Icons.close, size: 18),
                       onPressed: () => setState(() => _notice = null),
                     ),
@@ -281,7 +289,7 @@ class ClaudeWebChatState extends State<ClaudeWebChat> {
                       const SizedBox(height: 12),
                       Text(_error!, textAlign: TextAlign.center),
                       const SizedBox(height: 12),
-                      FilledButton.tonal(onPressed: reload, child: const Text('Retry')),
+                      FilledButton.tonal(onPressed: reload, child: Text(t('Retry'))),
                     ],
                   ),
                 ),
@@ -305,14 +313,14 @@ class _StatusStrip extends StatelessWidget {
       listenable: AiController.instance,
       builder: (context, _) {
         final u = Uri.tryParse(state.url ?? '');
-        final where = u == null || u.host.isEmpty ? 'loading…' : '${u.host}${u.path}';
+        final where = u == null || u.host.isEmpty ? t('loading…') : '${u.host}${u.path}';
         final problem = state.console.reversed.firstWhere(
           (l) => l.contains('error') || l.contains('console.error'),
           orElse: () => '',
         );
         final text = [
           where,
-          state.bridgeSeen ? 'app linked' : 'app not linked',
+          state.bridgeSeen ? t('app linked') : t('app not linked'),
           if (problem.isNotEmpty) problem.substring(9),
         ].join(' · ');
         return Container(
@@ -340,7 +348,7 @@ class _StatusStrip extends StatelessWidget {
                     textStyle: theme.textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w700),
                   ),
                   onPressed: state.pasteSignInLink,
-                  child: const Text('Paste sign-in link'),
+                  child: Text(t('Paste sign-in link')),
                 ),
             ],
           ),

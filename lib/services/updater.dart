@@ -5,6 +5,8 @@ import 'package:http/http.dart' as http;
 import 'package:ota_update/ota_update.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
+import '../l10n.dart';
+
 /// In-app updater backed by GitHub Releases. Every CI build publishes a
 /// release tagged `v<version>` with the APK attached; the app compares that
 /// with its own version and, if newer, downloads and launches the installer.
@@ -60,11 +62,11 @@ class Updater {
     try {
       info = await check();
     } catch (e) {
-      if (!silent) messenger?.showSnackBar(SnackBar(content: Text('Update check failed: $e')));
+      if (!silent) messenger?.showSnackBar(SnackBar(content: Text(tf('Update check failed: {e}', {'e': e}))));
       return;
     }
     if (info == null) {
-      if (!silent) messenger?.showSnackBar(const SnackBar(content: Text('You are on the latest version')));
+      if (!silent) messenger?.showSnackBar(SnackBar(content: Text(t('You are on the latest version'))));
       return;
     }
     if (!context.mounted) return;
@@ -74,14 +76,14 @@ class Updater {
       context: context,
       builder: (ctx) => AlertDialog(
         icon: const Icon(Icons.system_update),
-        title: const Text('Update available'),
+        title: Text(t('Update available')),
         content: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('Version ${info!.version} is available (you have $current).'),
-              if (info.sizeBytes > 0) Text('Size: ${(info.sizeBytes / 1048576).toStringAsFixed(1)} MB'),
+              Text(tf('Version {v} is available (you have {cur}).', {'v': info!.version, 'cur': current})),
+              if (info.sizeBytes > 0) Text(tf('Size: {mb} MB', {'mb': (info.sizeBytes / 1048576).toStringAsFixed(1)})),
               if (info.notes.trim().isNotEmpty) ...[
                 const SizedBox(height: 12),
                 Text(info.notes.trim(), style: Theme.of(ctx).textTheme.bodySmall),
@@ -90,8 +92,8 @@ class Updater {
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Later')),
-          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Update now')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(t('Later'))),
+          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: Text(t('Update now'))),
         ],
       ),
     );
@@ -119,7 +121,7 @@ class _DownloadDialog extends StatefulWidget {
 
 class _DownloadDialogState extends State<_DownloadDialog> {
   double? _progress;
-  String _status = 'Starting download…';
+  String _status = t('Starting download…');
   bool _done = false;
 
   @override
@@ -135,16 +137,16 @@ class _DownloadDialogState extends State<_DownloadDialog> {
                 switch (event.status) {
                   case OtaStatus.DOWNLOADING:
                     _progress = (double.tryParse(event.value ?? '') ?? 0) / 100;
-                    _status = 'Downloading… ${event.value ?? 0}%';
+                    _status = tf('Downloading… {p}%', {'p': event.value ?? 0});
                   case OtaStatus.INSTALLING:
                     _progress = 1;
-                    _status = 'Opening installer…';
+                    _status = t('Opening installer…');
                     _done = true;
                   case OtaStatus.ALREADY_RUNNING_ERROR:
-                    _status = 'A download is already running';
+                    _status = t('A download is already running');
                     _done = true;
                   case OtaStatus.PERMISSION_NOT_GRANTED_ERROR:
-                    _status = 'Please allow "Install unknown apps" for this app and try again';
+                    _status = t('Please allow "Install unknown apps" for this app and try again');
                     _done = true;
                   default:
                     _status = 'Update failed (${event.status.name}) ${event.value ?? ''}';
@@ -155,14 +157,14 @@ class _DownloadDialogState extends State<_DownloadDialog> {
             onError: (e) {
               if (mounted) {
                 setState(() {
-                  _status = 'Update failed: $e';
+                  _status = tf('Update failed: {e}', {'e': e});
                   _done = true;
                 });
               }
             },
           );
     } catch (e) {
-      _status = 'Update failed: $e';
+      _status = tf('Update failed: {e}', {'e': e});
       _done = true;
     }
   }
@@ -170,7 +172,7 @@ class _DownloadDialogState extends State<_DownloadDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Updating'),
+      title: Text(t('Updating')),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -179,7 +181,7 @@ class _DownloadDialogState extends State<_DownloadDialog> {
           Text(_status),
         ],
       ),
-      actions: [if (_done) TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close'))],
+      actions: [if (_done) TextButton(onPressed: () => Navigator.pop(context), child: Text(t('Close')))],
     );
   }
 }

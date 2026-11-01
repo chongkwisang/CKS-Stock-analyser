@@ -11,6 +11,7 @@ class AppState extends ChangeNotifier {
   ThemeMode _themeMode = ThemeMode.dark;
   bool _autoCheckUpdates = true;
   bool _candles = true;
+  String _language = 'en';
 
   /// Symbol on the stock screen currently open (context for the AI).
   String? viewingSymbol;
@@ -20,12 +21,22 @@ class AppState extends ChangeNotifier {
   bool get autoCheckUpdates => _autoCheckUpdates;
   bool get candles => _candles;
 
+  /// 'en' or 'zh' (Simplified Chinese).
+  String get language => _language;
+  bool get isChinese => _language == 'zh';
+  set language(String v) {
+    _language = v;
+    _prefs.setString('language', v);
+    notifyListeners();
+  }
+
   Future<void> load() async {
     _prefs = await SharedPreferences.getInstance();
     _watchlist = _prefs.getStringList('watchlist') ?? ['1155.KL', '1295.KL', '5347.KL', '5225.KL', '1023.KL'];
     _themeMode = ThemeMode.values[_prefs.getInt('themeMode') ?? ThemeMode.dark.index];
     _autoCheckUpdates = _prefs.getBool('autoCheckUpdates') ?? true;
     _candles = _prefs.getBool('candles') ?? true;
+    _language = _prefs.getString('language') ?? 'en';
   }
 
   bool isWatched(String symbol) => _watchlist.contains(symbol);

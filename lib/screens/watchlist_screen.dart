@@ -4,6 +4,7 @@ import '../services/app_state.dart';
 import '../services/market_api.dart';
 import '../widgets/quote_tile.dart';
 import 'stock_detail_screen.dart';
+import '../l10n.dart';
 
 /// Watchlist. On wide screens it becomes a master–detail split view.
 class WatchlistScreen extends StatefulWidget {
@@ -58,10 +59,10 @@ class _WatchlistScreenState extends State<WatchlistScreen> {
 
         final listPane = Scaffold(
           appBar: AppBar(
-            title: const Text('Watchlist'),
+            title: Text(t('Watchlist')),
             actions: [
               IconButton(
-                tooltip: _editing ? 'Done' : 'Edit',
+                tooltip: _editing ? t('Done') : t('Edit'),
                 icon: Icon(_editing ? Icons.check : Icons.edit_outlined),
                 onPressed: () => setState(() => _editing = !_editing),
               ),
@@ -160,7 +161,7 @@ class _Empty extends StatelessWidget {
         children: [
           Icon(Icons.star_outline, size: 56, color: Theme.of(context).colorScheme.outline),
           const SizedBox(height: 12),
-          const Text('Your watchlist is empty.\nUse Search to add Bursa counters.', textAlign: TextAlign.center),
+          Text(t('Your watchlist is empty.\nUse Search to add Bursa counters.'), textAlign: TextAlign.center),
         ],
       ),
     ),

@@ -5,6 +5,7 @@ import '../ai/ai_config.dart';
 import '../ai/ai_controller.dart';
 import '../services/app_state.dart';
 import '../services/updater.dart';
+import '../l10n.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -35,7 +36,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final s = AppState.instance;
     final theme = Theme.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Settings')),
+      appBar: AppBar(title: Text(t('Settings'))),
       body: ListenableBuilder(
         listenable: s,
         builder: (context, _) => Center(
@@ -67,7 +68,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
                               ),
                               Text(
-                                'Version ${_info?.version ?? '…'} (build ${_info?.buildNumber ?? '…'})',
+                                tf('Version {v} (build {b})', {
+                                  'v': _info?.version ?? '…',
+                                  'b': _info?.buildNumber ?? '…',
+                                }),
                                 style: theme.textTheme.bodySmall,
                               ),
                             ],
@@ -78,19 +82,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                _section(context, 'AI assistant'),
+                _section(context, t('AI assistant')),
                 Card(
                   child: ListenableBuilder(
                     listenable: AiConfig.instance,
                     builder: (context, _) => ListTile(
                       leading: const Icon(Icons.auto_awesome),
-                      title: const Text('Claude AI'),
+                      title: Text(t('Claude AI')),
                       subtitle: Text(
                         AiConfig.instance.useClaudeAccount
-                            ? 'Your Claude account (claude.ai sign-in)'
+                            ? t('Your Claude account (claude.ai sign-in)')
                             : AiConfig.instance.signedIn
-                            ? 'Connected · ${AiConfig.instance.modelLabel}'
-                            : 'Not connected. Tap to sign in',
+                            ? tf('Connected · {model}', {'model': AiConfig.instance.modelLabel})
+                            : t('Not connected. Tap to sign in'),
                       ),
                       trailing: const Icon(Icons.chevron_right),
                       onTap: () => AiController.instance.show(page: AiPage.settings),
@@ -98,14 +102,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                _section(context, 'Updates'),
+                _section(context, t('Updates')),
                 Card(
                   child: Column(
                     children: [
                       ListTile(
                         leading: const Icon(Icons.system_update),
-                        title: const Text('Check for update'),
-                        subtitle: const Text('Download and install the latest version'),
+                        title: Text(t('Check for update')),
+                        subtitle: Text(t('Download and install the latest version')),
                         trailing: _checking
                             ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
                             : const Icon(Icons.chevron_right),
@@ -114,39 +118,46 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       const Divider(height: 1),
                       SwitchListTile(
                         secondary: const Icon(Icons.autorenew),
-                        title: const Text('Check automatically on start'),
+                        title: Text(t('Check automatically on start')),
                         value: s.autoCheckUpdates,
                         onChanged: (v) => s.autoCheckUpdates = v,
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(height: 16),
-                _section(context, 'Appearance'),
+                SizedBox(height: 16),
+                _section(context, t('Appearance')),
                 Card(
                   child: Column(
                     children: [
                       Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: SegmentedButton<ThemeMode>(
-                          segments: const [
-                            ButtonSegment(value: ThemeMode.light, label: Text('Light'), icon: Icon(Icons.light_mode)),
-                            ButtonSegment(value: ThemeMode.dark, label: Text('Dark'), icon: Icon(Icons.dark_mode)),
-                            ButtonSegment(
-                              value: ThemeMode.system,
-                              label: Text('System'),
-                              icon: Icon(Icons.phone_android),
-                            ),
-                          ],
-                          selected: {s.themeMode},
-                          onSelectionChanged: (v) => s.themeMode = v.first,
+                        padding: EdgeInsets.all(16),
+                        child: SizedBox(
+                          width: double.infinity,
+                          child: SegmentedButton<ThemeMode>(
+                            segments: [
+                              ButtonSegment(
+                                value: ThemeMode.light,
+                                label: Text(t('Light')),
+                                icon: Icon(Icons.light_mode),
+                              ),
+                              ButtonSegment(value: ThemeMode.dark, label: Text(t('Dark')), icon: Icon(Icons.dark_mode)),
+                              ButtonSegment(
+                                value: ThemeMode.system,
+                                label: Text(t('System')),
+                                icon: Icon(Icons.phone_android),
+                              ),
+                            ],
+                            selected: {s.themeMode},
+                            onSelectionChanged: (v) => s.themeMode = v.first,
+                          ),
                         ),
                       ),
                       const Divider(height: 1),
                       SwitchListTile(
                         secondary: const Icon(Icons.candlestick_chart),
-                        title: const Text('Candlestick charts'),
-                        subtitle: const Text('Off = line charts'),
+                        title: Text(t('Candlestick charts')),
+                        subtitle: Text(t('Off = line charts')),
                         value: s.candles,
                         onChanged: (v) => s.candles = v,
                       ),
@@ -154,13 +165,34 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                _section(context, 'About'),
-                const Card(
+                _section(context, t('Language')),
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: SegmentedButton<String>(
+                      segments: const [
+                        ButtonSegment(value: 'en', label: Text('English')),
+                        ButtonSegment(value: 'zh', label: Text('简体中文')),
+                      ],
+                      selected: {s.language},
+                      onSelectionChanged: (v) => s.language = v.first,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                _section(context, t('About')),
+                Card(
                   child: ListTile(
                     leading: Icon(Icons.info_outline),
-                    title: Text('Data & disclaimer'),
+                    title: Text(t('Data & disclaimer')),
                     subtitle: Text(
-                      'Market data from Yahoo Finance, may be delayed. Analysis is for information only and is not financial advice.',
+                      t(
+                        t(
+                          t(
+                            'Market data from Yahoo Finance, may be delayed. Analysis is for information only and is not financial advice.',
+                          ),
+                        ),
+                      ),
                     ),
                   ),
                 ),

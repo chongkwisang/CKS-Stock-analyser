@@ -9,6 +9,7 @@ import 'ai_config.dart';
 import 'ai_controller.dart';
 import 'app_tools.dart';
 import 'claude_web.dart';
+import '../l10n.dart';
 
 /// Wraps the whole app (above the Navigator) with the floating Claude
 /// button and the chat panel that expands from it.
@@ -148,7 +149,7 @@ class _Fab extends StatelessWidget {
       listenable: ai,
       builder: (context, _) => Semantics(
         button: true,
-        label: ai.open ? 'Minimise Claude chat' : 'Open Claude chat',
+        label: ai.open ? t('Minimise Claude chat') : t('Open Claude chat'),
         child: GestureDetector(
           onTap: ai.toggle,
           child: AnimatedBuilder(
@@ -289,7 +290,7 @@ class _Header extends StatelessWidget {
         children: [
           if (page == AiPage.settings && cfg.signedIn)
             IconButton(
-              tooltip: 'Back to chat',
+              tooltip: t('Back to chat'),
               icon: const Icon(Icons.arrow_back),
               onPressed: () => ai.page = AiPage.chat,
             )
@@ -309,11 +310,11 @@ class _Header extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  page == AiPage.settings ? 'AI settings' : 'CKS AI',
+                  page == AiPage.settings ? t('AI settings') : t('CKS AI'),
                   style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
                 ),
                 if (cfg.useClaudeAccount)
-                  Text('Your Claude account', style: theme.textTheme.bodySmall)
+                  Text(t('Your Claude account'), style: theme.textTheme.bodySmall)
                 else if (cfg.signedIn)
                   GestureDetector(
                     onTap: () => ai.page = AiPage.settings,
@@ -332,23 +333,27 @@ class _Header extends StatelessWidget {
                     ),
                   )
                 else
-                  Text('Powered by Claude', style: theme.textTheme.bodySmall),
+                  Text(t('Powered by Claude'), style: theme.textTheme.bodySmall),
               ],
             ),
           ),
           if (page == AiPage.chat) ...[
             if (cfg.useClaudeAccount)
-              IconButton(tooltip: 'Reload chat', icon: const Icon(Icons.refresh), onPressed: () => ai.webChat?.reload())
+              IconButton(
+                tooltip: t('Reload chat'),
+                icon: const Icon(Icons.refresh),
+                onPressed: () => ai.webChat?.reload(),
+              )
             else
-              IconButton(tooltip: 'New chat', icon: const Icon(Icons.add_comment_outlined), onPressed: ai.newChat),
+              IconButton(tooltip: t('New chat'), icon: const Icon(Icons.add_comment_outlined), onPressed: ai.newChat),
             IconButton(
-              tooltip: 'AI settings',
+              tooltip: t('AI settings'),
               icon: const Icon(Icons.tune),
               onPressed: () => ai.page = AiPage.settings,
             ),
           ],
           IconButton(
-            tooltip: 'Minimise',
+            tooltip: t('Minimise'),
             icon: const Icon(Icons.keyboard_arrow_down_rounded),
             onPressed: () => ai.open = false,
           ),
@@ -445,8 +450,8 @@ class _ChatPageState extends State<_ChatPage> {
                   maxLines: 5,
                   textInputAction: TextInputAction.send,
                   onSubmitted: (_) => _send(),
-                  decoration: const InputDecoration(
-                    hintText: 'Ask about any Bursa stock…',
+                  decoration: InputDecoration(
+                    hintText: t('Ask about any Bursa stock…'),
                     isDense: true,
                     contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                   ),
@@ -459,13 +464,13 @@ class _ChatPageState extends State<_ChatPage> {
                 child: ai.busy
                     ? IconButton.filledTonal(
                         key: const ValueKey('stop'),
-                        tooltip: 'Stop',
+                        tooltip: t('Stop'),
                         icon: const Icon(Icons.stop_rounded),
                         onPressed: ai.stop,
                       )
                     : IconButton.filled(
                         key: const ValueKey('send'),
-                        tooltip: 'Send',
+                        tooltip: t('Send'),
                         icon: const Icon(Icons.arrow_upward_rounded),
                         onPressed: _input.text.trim().isEmpty ? null : _send,
                       ),
@@ -488,24 +493,30 @@ class _Welcome extends StatelessWidget {
     final viewing = AppState.instance.viewingSymbol;
     final code = viewing?.replaceAll('.KL', '');
     final suggestions = [
-      if (viewing != null) 'Analyse $code for me',
-      'How is the KLCI doing today?',
-      'Compare Maybank, Public Bank and CIMB',
-      'Which KLCI stocks look oversold?',
-      'Summarise my watchlist',
-      'Latest news on Tenaga Nasional',
+      if (viewing != null) tf('Analyse {code} for me', {'code': code}),
+      t('How is the KLCI doing today?'),
+      t('Compare Maybank, Public Bank and CIMB'),
+      t('Which KLCI stocks look oversold?'),
+      t('Summarise my watchlist'),
+      t('Latest news on Tenaga Nasional'),
     ];
     return ListView(
       padding: const EdgeInsets.all(20),
       children: [
         const SizedBox(height: 8),
         Text(
-          'Hi! Ask me anything about Bursa Malaysia.',
+          t('Hi! Ask me anything about Bursa Malaysia.'),
           style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
         ),
         const SizedBox(height: 6),
         Text(
-          'I can read live quotes, run technical analysis, compare stocks, manage your watchlist, open charts and search the web for news.',
+          t(
+            t(
+              t(
+                'I can read live quotes, run technical analysis, compare stocks, manage your watchlist, open charts and search the web for news.',
+              ),
+            ),
+          ),
           style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
         ),
         const SizedBox(height: 18),
@@ -670,7 +681,7 @@ class _ThinkingState extends State<_Thinking> {
                   Icon(Icons.psychology_alt_outlined, size: 15, color: theme.colorScheme.onSurfaceVariant),
                   const SizedBox(width: 6),
                   Text(
-                    widget.part.running ? 'Thinking…' : 'Thought process',
+                    widget.part.running ? t('Thinking…') : t('Thought process'),
                     style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
                   ),
                   if (text.isNotEmpty)
@@ -790,22 +801,30 @@ class _LoginPageState extends State<_LoginPage> {
     return ListView(
       padding: const EdgeInsets.all(20),
       children: [
-        Text('Connect your Claude account', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+        Text(
+          t('Connect your Claude account'),
+          style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+        ),
         const SizedBox(height: 8),
         Text(
-          'Sign in with an API key from your Claude Console account. Usage is billed to that account. '
-          '(A Claude.ai Pro/Max chat subscription can\'t be used by other apps.)',
+          t(
+            t(
+              t(
+                'Sign in with an API key from your Claude Console account. Usage is billed to that account. (A Claude.ai Pro/Max chat subscription can\'t be used by other apps.)',
+              ),
+            ),
+          ),
           style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
         ),
         const SizedBox(height: 16),
-        _Step(n: 1, text: 'Open the Claude Console and create an API key.'),
+        _Step(n: 1, text: t('Open the Claude Console and create an API key.')),
         Padding(
           padding: const EdgeInsets.only(left: 34, bottom: 8),
           child: Align(
             alignment: Alignment.centerLeft,
             child: OutlinedButton.icon(
               icon: const Icon(Icons.open_in_new, size: 18),
-              label: const Text('Get an API key'),
+              label: Text(t('Get an API key')),
               onPressed: () => launchUrl(
                 Uri.parse('https://console.anthropic.com/settings/keys'),
                 mode: LaunchMode.externalApplication,
@@ -813,7 +832,7 @@ class _LoginPageState extends State<_LoginPage> {
             ),
           ),
         ),
-        _Step(n: 2, text: 'Paste it here and connect.'),
+        _Step(n: 2, text: t('Paste it here and connect.')),
         const SizedBox(height: 8),
         TextField(
           controller: _key,
@@ -839,7 +858,7 @@ class _LoginPageState extends State<_LoginPage> {
           onPressed: _busy ? null : _connect,
           child: _busy
               ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
-              : const Text('Connect'),
+              : Text(t('Connect')),
         ),
         const SizedBox(height: 14),
         Row(
@@ -848,7 +867,7 @@ class _LoginPageState extends State<_LoginPage> {
             const SizedBox(width: 6),
             Expanded(
               child: Text(
-                'Your key is stored encrypted on this device and is only sent to api.anthropic.com.',
+                t('Your key is stored encrypted on this device and is only sent to api.anthropic.com.'),
                 style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.outline),
               ),
             ),
@@ -923,7 +942,7 @@ class _SettingsPageState extends State<_SettingsPage> {
     final name = _name.text.trim().replaceAll(RegExp(r'[^A-Za-z0-9_-]'), '-');
     final url = _url.text.trim();
     if (name.isEmpty || !url.startsWith('https://')) {
-      setState(() => _error = 'MCP server needs a name and an https:// URL');
+      setState(() => _error = t('MCP server needs a name and an https:// URL'));
       return;
     }
     AiConfig.instance.addMcp(
@@ -966,47 +985,52 @@ class _SettingsPageState extends State<_SettingsPage> {
     return ListView(
       padding: const EdgeInsets.fromLTRB(14, 0, 14, 20),
       children: [
-        section('Connection'),
+        section(t('Connection')),
         Card(
           child: RadioGroup<String>(
             groupValue: cfg.mode,
             onChanged: (v) {
               if (v != null) cfg.mode = v;
             },
-            child: const Column(
+            child: Column(
               children: [
                 RadioListTile<String>(
                   value: 'claude',
-                  title: Text('Claude account', style: TextStyle(fontWeight: FontWeight.w600)),
-                  subtitle: Text('Sign in on claude.ai. Uses your Claude plan, no API key needed.'),
+                  title: Text(t('Claude account'), style: TextStyle(fontWeight: FontWeight.w600)),
+                  subtitle: Text(t('Sign in on claude.ai. Uses your Claude plan, no API key needed.')),
                 ),
                 RadioListTile<String>(
                   value: 'api',
-                  title: Text('API key (advanced)', style: TextStyle(fontWeight: FontWeight.w600)),
-                  subtitle: Text('Pay-as-you-go Claude Console key. Adds web search and MCP servers.'),
+                  title: Text(t('API key (advanced)'), style: TextStyle(fontWeight: FontWeight.w600)),
+                  subtitle: Text(t('Pay-as-you-go Claude Console key. Adds web search and MCP servers.')),
                 ),
               ],
             ),
           ),
         ),
         if (cfg.useClaudeAccount) ...[
-          section('Claude account'),
+          section(t('Claude account')),
           Card(
             child: Column(
               children: [
                 ListTile(
                   leading: const Icon(Icons.chat_outlined),
-                  title: const Text('Back to chat'),
-                  subtitle: const Text(
-                    'Choose the engine (Fast, Balanced, Most capable or a named model) '
-                    'from the sliders icon inside the chat.',
+                  title: Text(t('Back to chat')),
+                  subtitle: Text(
+                    t(
+                      t(
+                        t(
+                          'Choose the engine (Fast, Balanced, Most capable or a named model) from the sliders icon inside the chat.',
+                        ),
+                      ),
+                    ),
                   ),
                   onTap: () => AiController.instance.page = AiPage.chat,
                 ),
                 const Divider(height: 1),
                 ListTile(
                   leading: const Icon(Icons.refresh),
-                  title: const Text('Reload chat'),
+                  title: Text(t('Reload chat')),
                   onTap: () {
                     AiController.instance.webChat?.reload();
                     AiController.instance.page = AiPage.chat;
@@ -1015,8 +1039,8 @@ class _SettingsPageState extends State<_SettingsPage> {
                 const Divider(height: 1),
                 ListTile(
                   leading: const Icon(Icons.logout),
-                  title: const Text('Sign out of claude.ai'),
-                  subtitle: const Text('Clears the Claude sign-in stored in this app'),
+                  title: Text(t('Sign out of claude.ai')),
+                  subtitle: Text(t('Clears the Claude sign-in stored in this app')),
                   onTap: () async {
                     await AiController.instance.webChat?.signOut();
                     AiController.instance.page = AiPage.chat;
@@ -1025,41 +1049,46 @@ class _SettingsPageState extends State<_SettingsPage> {
               ],
             ),
           ),
-          section('Chat diagnostics'),
+          section(t('Chat diagnostics')),
           _Diagnostics(),
           Padding(
             padding: const EdgeInsets.fromLTRB(4, 10, 4, 0),
             child: Text(
-              'Sign in with the Claude account that owns the CKS AI chat page, or one it is shared with. '
-              'Inside apps, Google sign-in may be blocked: use "Continue with email" instead.',
+              t(
+                t(
+                  t(
+                    'Sign in with the Claude account that owns the CKS AI chat page, or one it is shared with. Inside apps, Google sign-in may be blocked: use "Continue with email" instead.',
+                  ),
+                ),
+              ),
               style: theme.textTheme.bodySmall,
             ),
           ),
         ],
         if (!cfg.useClaudeAccount) ...[
-          section('Account'),
+          section(t('Account')),
           Card(
             child: cfg.signedIn
                 ? ListTile(
                     leading: const Icon(Icons.verified_user_outlined),
-                    title: const Text('Connected with API key'),
+                    title: Text(t('Connected with API key')),
                     subtitle: Text(key.length > 8 ? '••••${key.substring(key.length - 4)}' : '••••'),
-                    trailing: TextButton(onPressed: AiController.instance.signOut, child: const Text('Sign out')),
+                    trailing: TextButton(onPressed: AiController.instance.signOut, child: Text(t('Sign out'))),
                   )
                 : ListTile(
                     leading: const Icon(Icons.key),
-                    title: const Text('Enter your API key'),
+                    title: Text(t('Enter your API key')),
                     trailing: const Icon(Icons.chevron_right),
                     onTap: () => AiController.instance.page = AiPage.login,
                   ),
           ),
           section(
-            'AI model',
+            t('AI model'),
             trailing: _refreshing
                 ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
                 : IconButton(
                     visualDensity: VisualDensity.compact,
-                    tooltip: 'Refresh models',
+                    tooltip: t('Refresh models'),
                     icon: const Icon(Icons.refresh, size: 20),
                     onPressed: _refresh,
                   ),
@@ -1077,7 +1106,7 @@ class _SettingsPageState extends State<_SettingsPage> {
               },
               child: Column(
                 children: [
-                  if (cfg.models.isEmpty && !_refreshing) const ListTile(title: Text('No models loaded. Tap refresh.')),
+                  if (cfg.models.isEmpty && !_refreshing) ListTile(title: Text(t('No models loaded. Tap refresh.'))),
                   for (final m in cfg.models)
                     RadioListTile<String>(
                       value: m.id,
@@ -1087,8 +1116,8 @@ class _SettingsPageState extends State<_SettingsPage> {
                           Flexible(
                             child: Text(m.displayName, style: const TextStyle(fontWeight: FontWeight.w600)),
                           ),
-                          if (m.id == defaultModelId) _Badge('Recommended', cs.primary),
-                          if (m.id == newest && m.id != defaultModelId) _Badge('Newest', cs.tertiary),
+                          if (m.id == defaultModelId) _Badge(t('Recommended'), cs.primary),
+                          if (m.id == newest && m.id != defaultModelId) _Badge(t('Newest'), cs.tertiary),
                         ],
                       ),
                       subtitle: Text(m.id),
@@ -1098,7 +1127,7 @@ class _SettingsPageState extends State<_SettingsPage> {
             ),
           ),
           if ((cfg.modelInfo?.effortLevels ?? const []).isNotEmpty) ...[
-            section('Reasoning effort'),
+            section(t('Reasoning effort')),
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: SegmentedButton<String>(
@@ -1110,27 +1139,32 @@ class _SettingsPageState extends State<_SettingsPage> {
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(4, 6, 4, 0),
-              child: Text('Higher effort = deeper analysis, slower and more tokens.', style: theme.textTheme.bodySmall),
+              child: Text(
+                t('Higher effort = deeper analysis, slower and more tokens.'),
+                style: theme.textTheme.bodySmall,
+              ),
             ),
           ],
-          section('Tools'),
+          section(t('Tools')),
           Card(
             child: Column(
               children: [
                 ListTile(
                   leading: const Icon(Icons.query_stats),
-                  title: const Text('Bursa market tools'),
+                  title: Text(t('Bursa market tools')),
                   subtitle: Text(
-                    '${AppTools.definitions.length} built-in tools: quotes, history, technicals, compare, '
-                    'market overview, watchlist, open charts',
+                    tf(
+                      '{n} built-in tools: quotes, history, technicals, compare, market overview, watchlist, open charts',
+                      {'n': AppTools.definitions.length},
+                    ),
                   ),
                   trailing: const Icon(Icons.check_circle, color: Colors.green),
                 ),
                 const Divider(height: 1),
                 SwitchListTile(
                   secondary: const Icon(Icons.public),
-                  title: const Text('Web search & fetch'),
-                  subtitle: const Text('News, announcements and fundamentals'),
+                  title: Text(t('Web search & fetch')),
+                  subtitle: Text(t('News, announcements and fundamentals')),
                   value: cfg.webTools,
                   onChanged: (v) => cfg.webTools = v,
                 ),
@@ -1138,10 +1172,10 @@ class _SettingsPageState extends State<_SettingsPage> {
             ),
           ),
           section(
-            'MCP servers',
+            t('MCP servers'),
             trailing: IconButton(
               visualDensity: VisualDensity.compact,
-              tooltip: 'Add MCP server',
+              tooltip: t('Add MCP server'),
               icon: Icon(_adding ? Icons.close : Icons.add, size: 20),
               onPressed: () => setState(() => _adding = !_adding),
             ),
@@ -1149,7 +1183,7 @@ class _SettingsPageState extends State<_SettingsPage> {
           Padding(
             padding: const EdgeInsets.fromLTRB(4, 0, 4, 8),
             child: Text(
-              'Connect remote MCP servers (https) to give Claude more tools. Claude connects to them directly.',
+              t('Connect remote MCP servers (https) to give Claude more tools. Claude connects to them directly.'),
               style: theme.textTheme.bodySmall,
             ),
           ),
@@ -1164,24 +1198,24 @@ class _SettingsPageState extends State<_SettingsPage> {
                         children: [
                           TextField(
                             controller: _name,
-                            decoration: const InputDecoration(labelText: 'Name', isDense: true),
+                            decoration: InputDecoration(labelText: t('Name'), isDense: true),
                           ),
                           const SizedBox(height: 8),
                           TextField(
                             controller: _url,
                             keyboardType: TextInputType.url,
-                            decoration: const InputDecoration(labelText: 'Server URL (https://…)', isDense: true),
+                            decoration: InputDecoration(labelText: t('Server URL (https://…)'), isDense: true),
                           ),
                           const SizedBox(height: 8),
                           TextField(
                             controller: _token,
                             obscureText: true,
-                            decoration: const InputDecoration(labelText: 'Auth token (optional)', isDense: true),
+                            decoration: InputDecoration(labelText: t('Auth token (optional)'), isDense: true),
                           ),
                           const SizedBox(height: 10),
                           Align(
                             alignment: Alignment.centerRight,
-                            child: FilledButton.tonal(onPressed: _addServer, child: const Text('Add server')),
+                            child: FilledButton.tonal(onPressed: _addServer, child: Text(t('Add server'))),
                           ),
                         ],
                       ),
@@ -1251,7 +1285,7 @@ class _Diagnostics extends StatelessWidget {
                   children: [
                     OutlinedButton.icon(
                       icon: const Icon(Icons.open_in_new, size: 16),
-                      label: const Text('Open chat in browser'),
+                      label: Text(t('Open chat in browser')),
                       onPressed: () => launchUrl(Uri.parse(claudeChatUrl), mode: LaunchMode.externalApplication),
                     ),
                   ],

@@ -6,6 +6,7 @@ import '../data/bursa_stocks.dart';
 import '../services/app_state.dart';
 import '../services/market_api.dart';
 import 'stock_detail_screen.dart';
+import '../l10n.dart';
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
@@ -60,7 +61,7 @@ class _SearchScreenState extends State<SearchScreen> {
     final items = query.isEmpty ? browse.map((s) => SearchResult(s.symbol, s.name, s.sector)).toList() : _results;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Search')),
+      appBar: AppBar(title: Text(t('Search'))),
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 900),
@@ -74,7 +75,7 @@ class _SearchScreenState extends State<SearchScreen> {
                   textInputAction: TextInputAction.search,
                   onSubmitted: _search,
                   decoration: InputDecoration(
-                    hintText: 'Stock name or code (e.g. Maybank, 1155)',
+                    hintText: t('Stock name or code (e.g. Maybank, 1155)'),
                     prefixIcon: const Icon(Icons.search),
                     suffixIcon: query.isEmpty
                         ? null
@@ -99,7 +100,7 @@ class _SearchScreenState extends State<SearchScreen> {
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 4),
                           child: ChoiceChip(
-                            label: Text(s),
+                            label: Text(t(s)),
                             selected: _sector == s,
                             showCheckmark: false,
                             onSelected: (_) => setState(() => _sector = s),
@@ -113,7 +114,7 @@ class _SearchScreenState extends State<SearchScreen> {
                 child: ListenableBuilder(
                   listenable: AppState.instance,
                   builder: (context, _) => items.isEmpty && query.isNotEmpty && !_loading
-                      ? const Center(child: Text('No Bursa counters found'))
+                      ? Center(child: Text(t('No Bursa counters found')))
                       : ListView.separated(
                           itemCount: items.length,
                           separatorBuilder: (_, _) => const Divider(height: 1, indent: 72),
@@ -130,7 +131,7 @@ class _SearchScreenState extends State<SearchScreen> {
                                 ),
                               ),
                               title: Text(r.name, style: const TextStyle(fontWeight: FontWeight.w600)),
-                              subtitle: Text('$code · ${r.exchange}'),
+                              subtitle: Text('$code · ${t(r.exchange)}'),
                               trailing: IconButton(
                                 icon: Icon(
                                   watched ? Icons.star : Icons.star_outline,

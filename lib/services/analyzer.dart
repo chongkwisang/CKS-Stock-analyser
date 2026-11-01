@@ -1,5 +1,6 @@
 import 'indicators.dart';
 import 'market_api.dart';
+import '../l10n.dart';
 
 enum SignalBias { bullish, neutral, bearish }
 
@@ -30,8 +31,8 @@ class AnalysisResult {
 class Analyzer {
   static AnalysisResult analyze(List<Candle> candles) {
     if (candles.length < 30) {
-      return const AnalysisResult([
-        AnalysisPoint('Not enough data', 'Need at least 30 bars. Choose a longer range.', SignalBias.neutral),
+      return AnalysisResult([
+        AnalysisPoint(t('Not enough data'), t('Need at least 30 bars. Choose a longer range.'), SignalBias.neutral),
       ], 0);
     }
     final closes = candles.map((e) => e.close).toList();
@@ -48,8 +49,8 @@ class Analyzer {
       score += above ? 20 : -20;
       points.add(
         AnalysisPoint(
-          'Trend (SMA50)',
-          'Price is ${above ? 'above' : 'below'} the 50-day average',
+          t('Trend (SMA50)'),
+          above ? t('Price is above the 50-day average') : t('Price is below the 50-day average'),
           above ? SignalBias.bullish : SignalBias.bearish,
         ),
       );
@@ -58,8 +59,8 @@ class Analyzer {
       score += above ? 15 : -15;
       points.add(
         AnalysisPoint(
-          'Trend (SMA20)',
-          'Price is ${above ? 'above' : 'below'} the 20-day average',
+          t('Trend (SMA20)'),
+          above ? t('Price is above the 20-day average') : t('Price is below the 20-day average'),
           above ? SignalBias.bullish : SignalBias.bearish,
         ),
       );
@@ -69,8 +70,8 @@ class Analyzer {
       score += golden ? 15 : -15;
       points.add(
         AnalysisPoint(
-          'Long-term trend',
-          golden ? 'SMA50 above SMA200 (golden-cross regime)' : 'SMA50 below SMA200 (death-cross regime)',
+          t('Long-term trend'),
+          golden ? t('SMA50 above SMA200 (golden-cross regime)') : t('SMA50 below SMA200 (death-cross regime)'),
           golden ? SignalBias.bullish : SignalBias.bearish,
         ),
       );
@@ -82,16 +83,16 @@ class Analyzer {
       final r = rsi.toStringAsFixed(1);
       if (rsi >= 70) {
         score -= 10;
-        points.add(AnalysisPoint('RSI(14) $r', 'Overbought — risk of pullback', SignalBias.bearish));
+        points.add(AnalysisPoint('RSI(14) $r', t('Overbought — risk of pullback'), SignalBias.bearish));
       } else if (rsi <= 30) {
         score += 10;
-        points.add(AnalysisPoint('RSI(14) $r', 'Oversold — potential rebound', SignalBias.bullish));
+        points.add(AnalysisPoint('RSI(14) $r', t('Oversold — potential rebound'), SignalBias.bullish));
       } else if (rsi >= 50) {
         score += 10;
-        points.add(AnalysisPoint('RSI(14) $r', 'Positive momentum', SignalBias.bullish));
+        points.add(AnalysisPoint('RSI(14) $r', t('Positive momentum'), SignalBias.bullish));
       } else {
         score -= 10;
-        points.add(AnalysisPoint('RSI(14) $r', 'Weak momentum', SignalBias.bearish));
+        points.add(AnalysisPoint('RSI(14) $r', t('Weak momentum'), SignalBias.bearish));
       }
     }
 
@@ -102,16 +103,16 @@ class Analyzer {
       final cur = h.last, prev = h[h.length - 2];
       if (prev <= 0 && cur > 0) {
         score += 25;
-        points.add(const AnalysisPoint('MACD', 'Fresh bullish crossover', SignalBias.bullish));
+        points.add(AnalysisPoint('MACD', t('Fresh bullish crossover'), SignalBias.bullish));
       } else if (prev >= 0 && cur < 0) {
         score -= 25;
-        points.add(const AnalysisPoint('MACD', 'Fresh bearish crossover', SignalBias.bearish));
+        points.add(AnalysisPoint('MACD', t('Fresh bearish crossover'), SignalBias.bearish));
       } else {
         score += cur > 0 ? 15 : -15;
         points.add(
           AnalysisPoint(
             'MACD',
-            cur > 0 ? 'Above signal line' : 'Below signal line',
+            cur > 0 ? t('Above signal line') : t('Below signal line'),
             cur > 0 ? SignalBias.bullish : SignalBias.bearish,
           ),
         );
@@ -127,10 +128,10 @@ class Analyzer {
         AnalysisPoint(
           'Bollinger %B ${pos.toStringAsFixed(0)}%',
           pos > 100
-              ? 'Trading above upper band'
+              ? t('Trading above upper band')
               : pos < 0
-              ? 'Trading below lower band'
-              : 'Inside the bands',
+              ? t('Trading below lower band')
+              : t('Inside the bands'),
           pos > 100
               ? SignalBias.bearish
               : pos < 0
@@ -150,13 +151,19 @@ class Analyzer {
         score += rising ? 10 : -10;
         points.add(
           AnalysisPoint(
-            'Volume ${ratio.toStringAsFixed(1)}× avg',
-            rising ? 'Strong buying interest' : 'Heavy selling pressure',
+            tf('Volume {x}× avg', {'x': ratio.toStringAsFixed(1)}),
+            rising ? t('Strong buying interest') : t('Heavy selling pressure'),
             rising ? SignalBias.bullish : SignalBias.bearish,
           ),
         );
       } else {
-        points.add(AnalysisPoint('Volume ${ratio.toStringAsFixed(1)}× avg', 'Normal activity', SignalBias.neutral));
+        points.add(
+          AnalysisPoint(
+            tf('Volume {x}× avg', {'x': ratio.toStringAsFixed(1)}),
+            t('Normal activity'),
+            SignalBias.neutral,
+          ),
+        );
       }
     }
 

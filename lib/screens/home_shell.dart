@@ -6,6 +6,7 @@ import 'market_screen.dart';
 import 'search_screen.dart';
 import 'settings_screen.dart';
 import 'watchlist_screen.dart';
+import '../l10n.dart';
 
 /// Adaptive navigation: bottom bar on phones, navigation rail on tablets
 /// (extended with labels on large landscape tablets).
@@ -18,11 +19,11 @@ class HomeShell extends StatefulWidget {
 class _HomeShellState extends State<HomeShell> {
   int _index = 0;
 
-  static const _destinations = [
-    (Icons.show_chart_outlined, Icons.show_chart, 'Market'),
-    (Icons.star_outline, Icons.star, 'Watchlist'),
-    (Icons.search, Icons.search, 'Search'),
-    (Icons.settings_outlined, Icons.settings, 'Settings'),
+  static List<(IconData, IconData, String)> get _destinations => [
+    (Icons.show_chart_outlined, Icons.show_chart, t('Market')),
+    (Icons.star_outline, Icons.star, t('Watchlist')),
+    (Icons.search, Icons.search, t('Search')),
+    (Icons.settings_outlined, Icons.settings, t('Settings')),
   ];
 
   @override

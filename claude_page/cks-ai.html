@@ -22,6 +22,7 @@
   --fg: #e8ebf3; --muted: #9aa3b8; --accent: #7e9bff; --accent-fg: #0b1020;
   --user: #24305c; --user-fg: #e3e9ff; --up: #16c784; --down: #ff5c6a; color-scheme: dark }
 
+[hidden] { display: none !important; }
 html, body { height: 100%; }
 body { background: var(--bg); color: var(--fg); font: 15px/1.5 var(--body); display: flex; flex-direction: column; overflow: hidden; }
 .app { flex: 1; min-height: 0; display: flex; flex-direction: column; }
@@ -112,32 +113,32 @@ textarea:focus { outline: none; border-color: var(--accent); }
   </header>
 
   <section class="engine gutter" id="engine" aria-label="AI engine">
-    <div><label>Engine</label></div>
+    <div><label data-i18n>Engine</label></div>
     <div class="seg" id="tierSeg">
-      <button type="button" data-tier="quick">Fast</button>
-      <button type="button" data-tier="default">Balanced</button>
-      <button type="button" data-tier="complex">Most capable</button>
+      <button type="button" data-tier="quick" data-i18n>Fast</button>
+      <button type="button" data-tier="default" data-i18n>Balanced</button>
+      <button type="button" data-tier="complex" data-i18n>Most capable</button>
     </div>
     <div class="seg" id="modelSeg">
-      <button type="button" data-model="">Auto</button>
+      <button type="button" data-model="" data-i18n>Auto</button>
       <button type="button" data-model="claude-opus-5-5">Opus 5.5</button>
       <button type="button" data-model="claude-sonnet-5-5">Sonnet 5.5</button>
       <button type="button" data-model="claude-haiku-5-5">Haiku 5.5</button>
       <button type="button" data-model="claude-fable-5-1">Fable 5.1</button>
     </div>
-    <div><label>Thinking</label></div>
+    <div><label data-i18n>Thinking</label></div>
     <div class="seg" id="effortSeg">
-      <button type="button" data-effort="low">Light</button>
-      <button type="button" data-effort="medium">Normal</button>
-      <button type="button" data-effort="high">Deep</button>
+      <button type="button" data-effort="low" data-i18n>Light</button>
+      <button type="button" data-effort="medium" data-i18n>Normal</button>
+      <button type="button" data-effort="high" data-i18n>Deep</button>
     </div>
-    <p class="hint">Runs on your own Claude plan. A named model is used when your plan offers it; otherwise the engine tier answers.</p>
+    <p class="hint" data-i18n>Runs on your own Claude plan. A named model is used when your plan offers it; otherwise the engine tier answers.</p>
   </section>
 
   <main class="gutter" id="log" aria-live="polite">
     <div class="welcome" id="welcome">
-      <h2>Ask anything about Bursa Malaysia.</h2>
-      <p id="welcomeText">I read live quotes and charts from the CKS app, run technical analysis, compare counters and manage your watchlist.</p>
+      <h2 data-i18n>Ask anything about Bursa Malaysia.</h2>
+      <p id="welcomeText" data-i18n>I read live quotes and charts from the CKS app, run technical analysis, compare counters and manage your watchlist.</p>
       <div class="chips" id="chips"></div>
     </div>
   </main>
@@ -147,7 +148,7 @@ textarea:focus { outline: none; border-color: var(--accent); }
       <textarea id="input" rows="1" placeholder="Ask about any Bursa stock…" aria-label="Message"></textarea>
       <button class="send" id="sendBtn" type="submit" aria-label="Send" disabled><svg viewBox="0 0 24 24"><path d="M4 12l1.4 1.4L11 7.8V20h2V7.8l5.6 5.6L20 12l-8-8z"/></svg></button>
     </form>
-    <p class="disclaimer">Prices may be delayed. Information only, not financial advice.</p>
+    <p class="disclaimer" data-i18n>Prices may be delayed. Information only, not financial advice.</p>
   </footer>
 </div>
 
@@ -161,6 +162,48 @@ textarea:focus { outline: none; border-color: var(--accent); }
     get(k, d) { try { return localStorage.getItem(k) ?? d; } catch { return d; } },
     set(k, v) { try { localStorage.setItem(k, v); } catch {} },
   };
+
+  // ── Language (follows the app; English or Simplified Chinese) ──────────
+  const ZH = {
+    "Engine": "引擎", "Thinking": "思考深度", "Fast": "快速", "Balanced": "均衡", "Most capable": "最强", "Auto": "自动",
+    "Light": "简单", "Normal": "一般", "Deep": "深入",
+    "Runs on your own Claude plan. A named model is used when your plan offers it; otherwise the engine tier answers.": "使用你自己的 Claude 订阅。若你的方案支持指定模型就用该模型，否则由所选引擎回答。",
+    "Ask anything about Bursa Malaysia.": "有关马股的问题尽管问。",
+    "I read live quotes and charts from the CKS app, run technical analysis, compare counters and manage your watchlist.": "我可以读取 CKS 应用里的实时行情和图表、做技术分析、比较股票并管理你的自选股。",
+    "Open this chat from the CKS Stock Analyser app to give me live Bursa quotes and charts. Here I can still answer general questions.": "从 CKS Stock Analyser 应用打开此对话，我就能读取实时马股行情和图表。在这里我仍可回答一般问题。",
+    "Prices may be delayed. Information only, not financial advice.": "价格可能有延迟。仅供参考，不构成投资建议。",
+    "Ask about any Bursa stock…": "询问任何马股…",
+    "How is the KLCI doing today?": "今天综指表现如何？", "Analyse Maybank for me": "帮我分析 Maybank",
+    "Which KLCI stocks look oversold?": "哪些综指成分股看起来超卖？", "Compare Maybank, Public Bank and CIMB": "比较 Maybank、Public Bank 和 CIMB",
+    "Summarise my watchlist": "总结我的自选股",
+    "Thinking…": "思考中…", "Working…": "处理中…", "Connecting…": "连接中…",
+    "live market data": "实时行情", "no market data (open in the CKS app)": "无行情数据（请在 CKS 应用中打开）",
+    "Claude is not available here": "此处无法使用 Claude", "Claude is not available in this view": "此视图无法使用 Claude",
+    "Open this page on claude.ai to chat": "请在 claude.ai 打开此页面进行对话",
+    " engine": " 引擎", " · cut short, ask for less at a time": " · 回答被截断，请一次少问一些",
+    "Stopped.": "已停止。",
+    "Claude access wasn't allowed for this page. Reload the chat to be asked again.": "此页面未获准使用 Claude。重新加载对话即可再次授权。",
+    "Claude isn't available on this account.": "此账户无法使用 Claude。",
+    "Your Claude session expired. Sign in again.": "Claude 登录已过期，请重新登录。",
+    "You've reached a Claude usage limit for now. Try again later.": "已达到 Claude 用量上限，请稍后再试。",
+    "Claude declined that request. Try rephrasing it.": "Claude 拒绝了此请求，请换个说法。",
+    "No answer came back. Try asking more simply.": "没有收到回答，请尝试更简单的问题。",
+    "Market tools aren't available in this view.": "此视图无法使用行情工具。",
+    "The conversation is too long. Start a new chat.": "对话太长，请开始新对话。",
+    "Something went wrong reaching Claude. Try again.": "连接 Claude 时出错，请重试。",
+  };
+  let zh = false;
+  const T = (en) => (zh && ZH[en]) || en;
+  function applyLanguage(isZh) {
+    zh = isZh;
+    document.documentElement.lang = zh ? "zh-CN" : "en";
+    for (const el of document.querySelectorAll("[data-i18n]")) {
+      if (!el.dataset.en) el.dataset.en = el.textContent;
+      el.textContent = T(el.dataset.en);
+    }
+    $("input").placeholder = T("Ask about any Bursa stock…");
+  }
+  try { applyLanguage(store.get("cks.lang", "") === "zh" || (!store.get("cks.lang", "") && /^zh/i.test(navigator.language || ""))); } catch {}
 
   // ── Bridge to the CKS Android app ────────────────────────────────────────
   // The app injects `CksBridge` into this page and answers by posting
@@ -188,15 +231,15 @@ textarea:focus { outline: none; border-color: var(--accent); }
   const SYMBOL = { type: "string", description: 'Bursa stock: 4-digit code ("1155"), Yahoo symbol ("1155.KL"), short name ("MAYBANK"), or "^KLSE" for the FBM KLCI.' };
   const RANGE = { type: "string", enum: ["1mo", "3mo", "6mo", "1y", "2y", "5y"], description: "History range (daily bars; 5y weekly)." };
   const TOOL_DEFS = [
-    ["search_stocks", "Find Bursa counters by name, code or sector. Returns symbols and names. Use when unsure of a code.", { query: { type: "string" } }, ["query"], (i) => `Searching "${i.query ?? ""}"`],
-    ["get_quote", "Latest price, change, day range, volume and 52-week range for up to 20 stocks (delayed ~15 min).", { symbols: { type: "array", items: SYMBOL } }, ["symbols"], (i) => `Quote ${[].concat(i.symbols || []).join(", ")}`],
-    ["get_technical_analysis", "SMA20/50/200, RSI(14), MACD, Bollinger, volume vs average, returns, 52-week position and the app's analyzer score (-100..100) for one stock.", { symbol: SYMBOL, range: RANGE }, ["symbol"], (i) => `Analysing ${i.symbol ?? ""}`],
-    ["get_price_history", "OHLCV history for one stock as CSV, newest first, at most 120 rows.", { symbol: SYMBOL, range: RANGE }, ["symbol"], (i) => `Price history ${i.symbol ?? ""}`],
-    ["compare_stocks", "Side-by-side comparison of 2-10 stocks: price, returns, RSI, trend vs SMA50/200, analyzer score.", { symbols: { type: "array", items: SYMBOL } }, ["symbols"], (i) => `Comparing ${[].concat(i.symbols || []).join(", ")}`],
-    ["get_market_overview", "FBM KLCI level and change, breadth, sector performance, top gainers, losers and most active KLCI stocks.", {}, [], () => "Reading the market"],
-    ["get_watchlist", "The user's watchlist in the app, with quotes.", {}, [], () => "Reading your watchlist"],
-    ["update_watchlist", "Add or remove a stock from the user's watchlist. Only when the user asks.", { action: { type: "string", enum: ["add", "remove"] }, symbol: SYMBOL }, ["action", "symbol"], (i) => `${i.action === "remove" ? "Removing" : "Adding"} ${i.symbol ?? ""}`],
-    ["open_stock_chart", "Open the stock's chart screen in the app (the chat minimises). Use when the user asks to see a chart.", { symbol: SYMBOL }, ["symbol"], (i) => `Opening chart ${i.symbol ?? ""}`],
+    ["search_stocks", "Find Bursa counters by name, code or sector. Returns symbols and names. Use when unsure of a code.", { query: { type: "string" } }, ["query"], (i) => zh ? `搜索"${i.query ?? ""}"` : `Searching "${i.query ?? ""}"`],
+    ["get_quote", "Latest price, change, day range, volume and 52-week range for up to 20 stocks (delayed ~15 min).", { symbols: { type: "array", items: SYMBOL } }, ["symbols"], (i) => `${zh ? "行情" : "Quote"} ${[].concat(i.symbols || []).join(", ")}`],
+    ["get_technical_analysis", "SMA20/50/200, RSI(14), MACD, Bollinger, volume vs average, returns, 52-week position and the app's analyzer score (-100..100) for one stock.", { symbol: SYMBOL, range: RANGE }, ["symbol"], (i) => `${zh ? "分析" : "Analysing"} ${i.symbol ?? ""}`],
+    ["get_price_history", "OHLCV history for one stock as CSV, newest first, at most 120 rows.", { symbol: SYMBOL, range: RANGE }, ["symbol"], (i) => `${zh ? "历史价格" : "Price history"} ${i.symbol ?? ""}`],
+    ["compare_stocks", "Side-by-side comparison of 2-10 stocks: price, returns, RSI, trend vs SMA50/200, analyzer score.", { symbols: { type: "array", items: SYMBOL } }, ["symbols"], (i) => `${zh ? "比较" : "Comparing"} ${[].concat(i.symbols || []).join(", ")}`],
+    ["get_market_overview", "FBM KLCI level and change, breadth, sector performance, top gainers, losers and most active KLCI stocks.", {}, [], () => zh ? "读取市场概况" : "Reading the market"],
+    ["get_watchlist", "The user's watchlist in the app, with quotes.", {}, [], () => zh ? "读取自选股" : "Reading your watchlist"],
+    ["update_watchlist", "Add or remove a stock from the user's watchlist. Only when the user asks.", { action: { type: "string", enum: ["add", "remove"] }, symbol: SYMBOL }, ["action", "symbol"], (i) => `${i.action === "remove" ? (zh ? "移除" : "Removing") : (zh ? "加入" : "Adding")} ${i.symbol ?? ""}`],
+    ["open_stock_chart", "Open the stock's chart screen in the app (the chat minimises). Use when the user asks to see a chart.", { symbol: SYMBOL }, ["symbol"], (i) => `${zh ? "打开图表" : "Opening chart"} ${i.symbol ?? ""}`],
   ];
 
   const RULES = `You are CKS AI, the assistant inside "CKS Stock Analyser", an Android app for the Bursa Malaysia stock market.
@@ -204,7 +247,8 @@ Help the user understand Malaysian stocks: prices, trends, technical analysis, c
 Use the app tools for any market data and never invent prices or indicator values. If unsure of a company's 4-digit code, call search_stocks first.
 Prices are in Ringgit (RM) and may be delayed about 15 minutes; times are Malaysia time (UTC+8). The FBM KLCI index is ^KLSE.
 You are shown in a small phone/tablet chat panel: lead with the answer, keep it short, use bullets and small markdown tables.
-Only change the watchlist when asked. This is information, not financial advice: when giving a view, mention the main risks.`;
+Only change the watchlist when asked. This is information, not financial advice: when giving a view, mention the main risks.
+Answer in the language the app context asks for (Simplified Chinese when the app language is zh), unless the user writes in another language.`;
 
   // ── Engine choice ────────────────────────────────────────────────────────
   const prefs = { tier: store.get("cks.tier", "default"), model: store.get("cks.model", ""), effort: store.get("cks.effort", "medium") };
@@ -235,7 +279,7 @@ Only change the watchlist when asked. This is information, not financial advice:
   function updateStatus(text) {
     const live = hasBridge();
     $("liveDot").classList.toggle("on", live && !!sample);
-    $("status").textContent = text || (sample === null ? "Claude is not available here" : `${engineLabel()} · ${live ? "live market data" : "no market data (open in the CKS app)"}`);
+    $("status").textContent = text || (sample === null ? T("Claude is not available here") : `${engineLabel()} · ${live ? T("live market data") : T("no market data (open in the CKS app)")}`);
   }
 
   function renderChips() {
@@ -251,8 +295,8 @@ Only change the watchlist when asked. This is information, not financial advice:
       const b = document.createElement("button");
       b.type = "button"; b.className = "chip";
       if (code) { const s = document.createElement("span"); s.className = "code"; s.textContent = code; b.append(s); }
-      b.append(text);
-      b.addEventListener("click", () => { input.value = text; send(); });
+      b.append(T(text));
+      b.addEventListener("click", () => { input.value = T(text); send(); });
       chips.append(b);
     }
   }
@@ -277,7 +321,7 @@ Only change the watchlist when asked. This is information, not financial advice:
     const steps = document.createElement("div"); steps.className = "steps";
     const body = document.createElement("div"); body.className = "md";
     const typing = document.createElement("div"); typing.className = "typing";
-    typing.innerHTML = "<b><span></span><span></span><span></span></b><span>Thinking…</span>";
+    typing.innerHTML = "<b><span></span><span></span><span></span></b><span>" + T("Thinking…") + "</span>";
     wrap.append(steps, typing, body); log.append(wrap); scrollDown();
     return { wrap, steps, body, typing };
   }
@@ -290,7 +334,7 @@ Only change the watchlist when asked. This is information, not financial advice:
         const step = document.createElement("div"); step.className = "step";
         const i = document.createElement("i"); const s = document.createElement("span"); s.textContent = label(args || {});
         step.append(i, s); ui.steps.append(step); scrollDown();
-        ui.typing.querySelector("span:last-child").textContent = "Working…";
+        ui.typing.querySelector("span:last-child").textContent = T("Working…");
         try {
           const out = await callApp(name, args || {});
           if (context.signal.aborted) throw new Error("Stopped");
@@ -312,7 +356,7 @@ Only change the watchlist when asked. This is information, not financial advice:
   async function send() {
     const text = input.value.trim();
     if (!text || busy || blocked) return;
-    if (!sample) { updateStatus("Claude is not available in this view"); return; }
+    if (!sample) { updateStatus(T("Claude is not available in this view")); return; }
     busy = true; input.value = ""; autosize(); setSendState();
     $("welcome").hidden = true;
     addUser(text);
@@ -335,8 +379,8 @@ Only change the watchlist when asked. This is information, not financial advice:
       md(ui.body, res.text);
       turns.push({ role: "assistant", content: res.text });
       const meta = document.createElement("div"); meta.className = "meta";
-      const tierName = { quick: "Fast", default: "Balanced", complex: "Most capable" }[res.modelTierApplied] || res.modelTierApplied;
-      meta.textContent = (res.modelApplied ? res.modelApplied.replace("claude-", "Claude ").replace(/-(\d)-(\d)$/, " $1.$2") : tierName + " engine") + (res.truncated ? " · cut short, ask for less at a time" : "");
+      const tierName = T({ quick: "Fast", default: "Balanced", complex: "Most capable" }[res.modelTierApplied] || res.modelTierApplied);
+      meta.textContent = (res.modelApplied ? res.modelApplied.replace("claude-", "Claude ").replace(/-(\d)-(\d)$/, " $1.$2") : tierName + T(" engine")) + (res.truncated ? T(" · cut short, ask for less at a time") : "");
       ui.wrap.append(meta);
     } catch (e) {
       if (e && e.text) md(ui.body, e.text); else if (!e || e.code !== "cancelled") ui.body.textContent = "";
@@ -352,8 +396,9 @@ Only change the watchlist when asked. This is information, not financial advice:
         tools_unavailable: "Market tools aren't available in this view.",
         prompt_too_large: "The conversation is too long. Start a new chat.",
       }[e && e.code] || "Something went wrong reaching Claude. Try again.";
+      const shown = T(msg);
       if (["not_granted", "sampling_disabled", "not_declared", "capability_disabled"].includes(e && e.code)) blocked = true;
-      const d = document.createElement("div"); d.className = e && e.code === "cancelled" ? "meta" : "err"; d.textContent = msg; ui.wrap.append(d);
+      const d = document.createElement("div"); d.className = e && e.code === "cancelled" ? "meta" : "err"; d.textContent = shown; ui.wrap.append(d);
     } finally {
       ui.typing.hidden = true;
       busy = false; ctl = null; setSendState(); scrollDown();
@@ -380,7 +425,15 @@ Only change the watchlist when asked. This is information, not financial advice:
   // ── Start ────────────────────────────────────────────────────────────────
   // Tell the app this page reached it (shows as "App bridge: connected" in AI settings).
   try { if (hasBridge()) window.CksBridge.postMessage(JSON.stringify({ id: "hello", tool: "hello", input: {} })); } catch {}
-  updateStatus("Connecting…");
+  updateStatus(T("Connecting…"));
+  // Follow the app's language.
+  if (hasBridge()) {
+    callApp("get_app_context", {}).then((ctx) => {
+      const isZh = /App language: zh/.test(String(ctx));
+      store.set("cks.lang", isZh ? "zh" : "en");
+      applyLanguage(isZh); renderChips(); updateStatus();
+    }).catch(() => {});
+  }
   if (window.claude && typeof window.claude.use === "function") {
     window.claude.use("sample").then(async (s) => {
       sample = s;
@@ -389,11 +442,11 @@ Only change the watchlist when asked. This is information, not financial advice:
         toolsOk = !!(lim && lim.tools);
         if (lim && lim.tools && lim.tools.maxCount) maxTools = Math.min(TOOL_DEFS.length, lim.tools.maxCount);
       }
-      if (!hasBridge()) $("welcomeText").textContent = "Open this chat from the CKS Stock Analyser app to give me live Bursa quotes and charts. Here I can still answer general questions.";
+      if (!hasBridge()) { $("welcomeText").dataset.en = "Open this chat from the CKS Stock Analyser app to give me live Bursa quotes and charts. Here I can still answer general questions."; applyLanguage(zh); }
       updateStatus();
     });
   } else {
-    sample = null; updateStatus("Open this page on claude.ai to chat");
+    sample = null; updateStatus(T("Open this page on claude.ai to chat"));
   }
   // The app may inject the bridge a moment after load.
   setTimeout(() => updateStatus(busy ? undefined : undefined), 1500);

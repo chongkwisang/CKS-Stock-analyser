@@ -7,6 +7,7 @@ import '../widgets/format.dart';
 import '../widgets/price_chart.dart';
 import '../widgets/quote_tile.dart';
 import 'stock_detail_screen.dart';
+import '../l10n.dart';
 
 class MarketScreen extends StatefulWidget {
   const MarketScreen({super.key});
@@ -48,7 +49,7 @@ class _MarketScreenState extends State<MarketScreen> {
       if (index != null) _index = index;
       _quotes = quotes;
       _loading = false;
-      if (index == null && quotes.isEmpty) _error ??= 'Network error. Check your connection.';
+      if (index == null && quotes.isEmpty) _error ??= t('Network error. Check your connection.');
     });
   }
 
@@ -64,7 +65,7 @@ class _MarketScreenState extends State<MarketScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Bursa Malaysia'),
+        title: Text(t('Bursa Malaysia')),
         actions: [
           if (_loading)
             const Padding(
@@ -90,7 +91,7 @@ class _MarketScreenState extends State<MarketScreen> {
                   const SizedBox(height: 12),
                   Text(_error!),
                   const SizedBox(height: 12),
-                  FilledButton.tonal(onPressed: () => _load(force: true), child: const Text('Retry')),
+                  FilledButton.tonal(onPressed: () => _load(force: true), child: Text(t('Retry'))),
                 ],
               ),
             );
@@ -219,7 +220,7 @@ class _MarketScreenState extends State<MarketScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('KLCI market breadth', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+            Text(t('KLCI market breadth'), style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
             const SizedBox(height: 12),
             ClipRRect(
               borderRadius: BorderRadius.circular(6),
@@ -267,18 +268,18 @@ class _MarketScreenState extends State<MarketScreen> {
               ],
             ),
             Text(
-              '${(up / total * 100).toStringAsFixed(0)}% of constituents advancing',
+              tf('{pct}% of constituents advancing', {'pct': (up / total * 100).toStringAsFixed(0)}),
               style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
             ),
             const SizedBox(height: 16),
-            Text('Sector performance', style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
+            Text(t('Sector performance'), style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
             const SizedBox(height: 8),
             for (final s in sectorAvg)
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 3),
                 child: Row(
                   children: [
-                    Expanded(child: Text(s.$1, style: theme.textTheme.bodySmall)),
+                    Expanded(child: Text(t(s.$1), style: theme.textTheme.bodySmall)),
                     Text(
                       fmtPct(s.$2),
                       style: theme.textTheme.bodySmall?.copyWith(
@@ -312,16 +313,16 @@ class _MarketScreenState extends State<MarketScreen> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-            child: Text('KLCI movers', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+            padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
+            child: Text(t('KLCI movers'), style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
           ),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+            padding: EdgeInsets.symmetric(horizontal: 16),
             child: SegmentedButton<int>(
-              segments: const [
-                ButtonSegment(value: 0, label: Text('Gainers'), icon: Icon(Icons.trending_up)),
-                ButtonSegment(value: 1, label: Text('Losers'), icon: Icon(Icons.trending_down)),
-                ButtonSegment(value: 2, label: Text('Active'), icon: Icon(Icons.bar_chart)),
+              segments: [
+                ButtonSegment(value: 0, label: Text(t('Gainers')), icon: Icon(Icons.trending_up)),
+                ButtonSegment(value: 1, label: Text(t('Losers')), icon: Icon(Icons.trending_down)),
+                ButtonSegment(value: 2, label: Text(t('Active')), icon: Icon(Icons.bar_chart)),
               ],
               selected: {_tab},
               showSelectedIcon: false,
@@ -341,7 +342,7 @@ class _MarketScreenState extends State<MarketScreen> {
           Padding(
             padding: const EdgeInsets.all(12),
             child: Text(
-              'Prices from Yahoo Finance; may be delayed ~15 min.',
+              t('Prices from Yahoo Finance; may be delayed ~15 min.'),
               style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.outline),
             ),
           ),

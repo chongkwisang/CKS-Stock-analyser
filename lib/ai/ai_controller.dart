@@ -8,6 +8,7 @@ import 'ai_config.dart';
 import 'app_tools.dart';
 import 'claude_web.dart';
 import 'claude_client.dart';
+import '../l10n.dart';
 
 enum AiPage { chat, settings, login }
 
@@ -117,6 +118,9 @@ class AiController extends ChangeNotifier {
       'Current time: ${now.toIso8601String().substring(0, 16)} MYT',
       if (viewing != null) 'User is viewing: $viewing${known != null ? ' (${known.name})' : ''}',
       'Watchlist: ${AppState.instance.watchlist.join(', ')}',
+      AppState.instance.isChinese
+          ? 'App language: zh (Simplified Chinese). Reply in Simplified Chinese unless the user writes in another language.'
+          : 'App language: en',
     ];
     return parts.join('\n');
   }
@@ -159,7 +163,7 @@ class AiController extends ChangeNotifier {
     messages.add(ChatMessage.user(text.trim()));
     final reply = ChatMessage.assistant();
     messages.add(reply);
-    status = 'Thinking…';
+    status = t('Thinking…');
     notifyListeners();
 
     final userBlocks = [
@@ -218,7 +222,7 @@ class AiController extends ChangeNotifier {
               }
               _completeServerTool(reply, b);
               status = switch (b['type']) {
-                'thinking' || 'redacted_thinking' => 'Thinking…',
+                'thinking' || 'redacted_thinking' => t('Thinking…'),
                 'text' => null,
                 _ => status,
               };
@@ -247,7 +251,7 @@ class AiController extends ChangeNotifier {
 
         switch (result.stopReason) {
           case 'tool_use':
-            status = 'Working…';
+            status = t('Working…');
             notifyListeners();
             final results = await _runTools(result.content, reply);
             _history.add({'role': 'user', 'content': results});
@@ -255,21 +259,21 @@ class AiController extends ChangeNotifier {
           case 'pause_turn':
             continue;
           case 'refusal':
-            reply.parts.add(ChatPart.notice('Claude declined to answer this request.', failed: true));
+            reply.parts.add(ChatPart.notice(t('Claude declined to answer this request.'), failed: true));
             _closeDanglingTools();
           case 'max_tokens':
-            reply.parts.add(ChatPart.notice('The reply hit the length limit. Ask me to continue.'));
+            reply.parts.add(ChatPart.notice(t('The reply hit the length limit. Ask me to continue.')));
             _closeDanglingTools();
         }
         break;
       }
     } catch (e) {
       if (isCancellation(e)) {
-        reply.parts.add(ChatPart.notice('Stopped.'));
+        reply.parts.add(ChatPart.notice(t('Stopped.')));
       } else {
         reply.parts.add(ChatPart.notice('$e', failed: true));
         if (e is ClaudeApiException && e.status == 401) {
-          reply.parts.add(ChatPart.notice('Your API key was rejected. Sign in again in AI settings.', failed: true));
+          reply.parts.add(ChatPart.notice(t('Your API key was rejected. Sign in again in AI settings.'), failed: true));
         }
       }
       _closeDanglingTools();

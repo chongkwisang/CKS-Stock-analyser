@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'ai/ai_config.dart';
 import 'ai/ai_overlay.dart';
@@ -28,7 +29,14 @@ class CksApp extends StatelessWidget {
         darkTheme: buildTheme(Brightness.dark),
         themeMode: AppState.instance.themeMode,
         navigatorKey: appNavigatorKey,
-        builder: (context, child) => AiOverlay(child: child ?? const SizedBox()),
+        locale: AppState.instance.isChinese ? const Locale('zh', 'CN') : const Locale('en'),
+        supportedLocales: const [Locale('en'), Locale('zh', 'CN')],
+        localizationsDelegates: GlobalMaterialLocalizations.delegates,
+        // Rebuild every screen when the language changes.
+        builder: (context, child) => KeyedSubtree(
+          key: ValueKey(AppState.instance.language),
+          child: AiOverlay(child: child ?? const SizedBox()),
+        ),
         home: const HomeShell(),
       ),
     );

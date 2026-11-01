@@ -5,6 +5,7 @@ import '../services/market_api.dart';
 import '../theme.dart';
 import 'format.dart';
 import 'sparkline.dart';
+import '../l10n.dart';
 
 class QuoteTile extends StatelessWidget {
   final String symbol;
@@ -30,7 +31,7 @@ class QuoteTile extends StatelessWidget {
     final q = quote;
     final known = findKnown(symbol);
     final title = known?.name ?? symbol.replaceAll('.KL', '');
-    final subtitle = q?.name ?? known?.sector ?? symbol;
+    final subtitle = q?.name ?? (known != null ? t(known.sector) : symbol);
     final color = q == null ? theme.colorScheme.outline : changeColor(q.change, context);
 
     return Material(
