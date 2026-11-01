@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:webview_flutter_android/webview_flutter_android.dart';
@@ -13,18 +14,18 @@ import 'app_tools.dart';
 /// through the `CksBridge` JavaScript channel.
 const claudeChatUrl = 'https://claude.ai/artifact/Fw3oDijVjE9ZUPiE3dDQTZ';
 
+/// Google and Apple block their sign-in pop-ups inside apps' browsers.
+bool _socialLogin(Uri u) =>
+    u.host == 'accounts.google.com' || u.host.endsWith('.google.com') || u.host == 'appleid.apple.com';
+
+const _useEmailNotice =
+    'Google and Apple sign-in don\'t work inside apps. Tap "Continue with email", then enter the code from '
+    'Claude\'s email, or copy the sign-in link from the email and tap "Paste sign-in link" below.';
+
 /// Hosts the in-app browser may navigate to; anything else opens outside.
 bool _allowedHost(String host) {
-  const exact = {'claude.ai', 'claude.com', 'accounts.google.com', 'appleid.apple.com'};
-  const suffixes = [
-    '.claude.ai',
-    '.claude.com',
-    '.claudeusercontent.com',
-    '.anthropic.com',
-    '.google.com',
-    '.gstatic.com',
-    '.apple.com',
-  ];
+  const exact = {'claude.ai', 'claude.com'};
+  const suffixes = ['.claude.ai', '.claude.com', '.claudeusercontent.com', '.anthropic.com'];
   return exact.contains(host) || host == 'anthropic.com' || suffixes.any(host.endsWith);
 }
 
@@ -38,6 +39,7 @@ class ClaudeWebChatState extends State<ClaudeWebChat> {
   late final WebViewController _web;
   int _progress = 0;
   String? _error;
+  String? _notice;
 
   // Diagnostics, shown in AI settings.
   String? url;
@@ -79,6 +81,11 @@ class ClaudeWebChatState extends State<ClaudeWebChat> {
             if (c.url == null) return;
             url = c.url;
             _log('url ${c.url}');
+            final cu = Uri.tryParse(c.url!);
+            if (cu != null && _socialLogin(cu)) {
+              _blockSocialLogin();
+              return;
+            }
             _returnToChat(c.url!);
           },
           onWebResourceError: (e) {
@@ -90,6 +97,10 @@ class ClaudeWebChatState extends State<ClaudeWebChat> {
           onNavigationRequest: (req) {
             final uri = Uri.tryParse(req.url);
             if (uri == null) return NavigationDecision.prevent;
+            if (_socialLogin(uri)) {
+              _blockSocialLogin();
+              return NavigationDecision.prevent;
+            }
             if (!req.isMainFrame) return NavigationDecision.navigate;
             if ((uri.scheme == 'https' || uri.scheme == 'http') && _allowedHost(uri.host)) {
               return NavigationDecision.navigate;
@@ -131,6 +142,31 @@ class ClaudeWebChatState extends State<ClaudeWebChat> {
     _lastReturn = now;
     _log('back to chat from ${path.isEmpty ? '/' : path}');
     _web.loadRequest(Uri.parse(claudeChatUrl));
+  }
+
+  void _blockSocialLogin() {
+    _log('blocked Google/Apple sign-in');
+    if (mounted) setState(() => _notice = _useEmailNotice);
+    _web.loadRequest(
+      Uri.parse('https://claude.ai/login?returnTo=${Uri.encodeComponent('/artifact/Fw3oDijVjE9ZUPiE3dDQTZ')}'),
+    );
+  }
+
+  /// Opens a claude.ai sign-in link the user copied from Claude's email.
+  Future<void> pasteSignInLink() async {
+    final text = (await Clipboard.getData(Clipboard.kTextPlain))?.text?.trim() ?? '';
+    final match = RegExp(r'https://(www\.)?claude\.ai/\S+').firstMatch(text);
+    if (match == null) {
+      setState(
+        () => _notice =
+            'No claude.ai link on the clipboard. In Claude\'s sign-in email, long-press the sign-in '
+            'button or link, choose "Copy link address", then tap "Paste sign-in link" again.',
+      );
+      return;
+    }
+    setState(() => _notice = null);
+    _log('opening pasted sign-in link');
+    _web.loadRequest(Uri.parse(match.group(0)!));
   }
 
   void reload() {
@@ -186,7 +222,49 @@ class ClaudeWebChatState extends State<ClaudeWebChat> {
     final theme = Theme.of(context);
     return Stack(
       children: [
-        Positioned.fill(child: WebViewWidget(controller: _web)),
+        Positioned.fill(
+          bottom: 30,
+          child: _web.platform is AndroidWebViewController
+              // Hybrid composition draws reliably on more Android GPUs than the
+              // default texture mode (which can show a blank white view).
+              ? WebViewWidget.fromPlatformCreationParams(
+                  params: AndroidWebViewWidgetCreationParams(
+                    controller: _web.platform,
+                    displayWithHybridComposition: true,
+                  ),
+                )
+              : WebViewWidget(controller: _web),
+        ),
+        Positioned(left: 0, right: 0, bottom: 0, height: 30, child: _StatusStrip(state: this)),
+        if (_notice != null)
+          Positioned(
+            left: 8,
+            right: 8,
+            top: 8,
+            child: Material(
+              elevation: 6,
+              borderRadius: BorderRadius.circular(14),
+              color: Theme.of(context).colorScheme.tertiaryContainer,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(14, 10, 4, 10),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(Icons.info_outline, color: Theme.of(context).colorScheme.onTertiaryContainer),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(_notice!, style: TextStyle(color: Theme.of(context).colorScheme.onTertiaryContainer)),
+                    ),
+                    IconButton(
+                      tooltip: 'Dismiss',
+                      icon: const Icon(Icons.close, size: 18),
+                      onPressed: () => setState(() => _notice = null),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
         if (_progress < 100)
           Positioned(top: 0, left: 0, right: 0, child: LinearProgressIndicator(value: _progress / 100, minHeight: 2)),
         if (_error != null)
@@ -211,6 +289,63 @@ class ClaudeWebChatState extends State<ClaudeWebChat> {
             ),
           ),
       ],
+    );
+  }
+}
+
+/// One line under the chat: where the page is and whether it reached the app.
+class _StatusStrip extends StatelessWidget {
+  final ClaudeWebChatState state;
+  const _StatusStrip({required this.state});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return ListenableBuilder(
+      listenable: AiController.instance,
+      builder: (context, _) {
+        final u = Uri.tryParse(state.url ?? '');
+        final where = u == null || u.host.isEmpty ? 'loading…' : '${u.host}${u.path}';
+        final problem = state.console.reversed.firstWhere(
+          (l) => l.contains('error') || l.contains('console.error'),
+          orElse: () => '',
+        );
+        final text = [
+          where,
+          state.bridgeSeen ? 'app linked' : 'app not linked',
+          if (problem.isNotEmpty) problem.substring(9),
+        ].join(' · ');
+        return Container(
+          color: theme.colorScheme.surfaceContainer,
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          alignment: Alignment.centerLeft,
+          child: Row(
+            children: [
+              Icon(Icons.circle, size: 8, color: state.bridgeSeen ? Colors.green : theme.colorScheme.outline),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  text,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                ),
+              ),
+              if (!state.bridgeSeen)
+                TextButton(
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    minimumSize: const Size(0, 22),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    textStyle: theme.textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w700),
+                  ),
+                  onPressed: state.pasteSignInLink,
+                  child: const Text('Paste sign-in link'),
+                ),
+            ],
+          ),
+        );
+      },
     );
   }
 }
